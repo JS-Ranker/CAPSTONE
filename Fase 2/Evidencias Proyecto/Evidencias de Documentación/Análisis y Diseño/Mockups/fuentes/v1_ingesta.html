@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><title>Ingesta</title><link rel="stylesheet" href="base.css">
+<style>
+.drop { border: 2px dashed #9DB5CE; background: #F7FAFD; border-radius: 10px; height: 210px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; text-align: center; }
+.drop .big { width: 56px; height: 56px; border-radius: 50%; background: var(--azul-cl); display: flex; align-items: center; justify-content: center; color: var(--azul); font-size: 28px; font-weight: 700; }
+.drop p { font-size: 15px; }
+.drop small { color: var(--gris); }
+.side { width: 330px; }
+.kv { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #EEF1F5; font-size: 13px; }
+.kv b { font-weight: 600; }
+</style></head>
+<body>
+<aside>
+  <div class="logo">TTDH Automation<small>Banco Genérico</small></div>
+  <nav>
+    <a class="act"><span class="ic"></span>Ingesta de Archivos</a>
+    <a><span class="ic"></span>Dashboard</a>
+    <a><span class="ic"></span>Bandeja de Excepciones</a>
+    <a><span class="ic"></span>Reportes e IA</a>
+    <div class="sep">Administración</div>
+    <a><span class="ic"></span>Bitácora de Auditoría</a>
+    <a><span class="ic"></span>Usuarios y Roles</a>
+  </nav>
+  <div class="user">María Gaete<br>Analista de Conciliación</div>
+</aside>
+<main>
+  <header>
+    <div><div class="crumbs">Inicio / Ingesta</div><h1>Gestión de Ingesta de Archivos TGR</h1></div>
+    <div style="display:flex;gap:10px;align-items:center"><span class="crumbs">Periodo tributario</span><select><option>Septiembre 2026</option></select></div>
+  </header>
+  <div class="content">
+    <div class="row">
+      <div class="card" style="flex:1">
+        <h2>Cargar nuevo archivo</h2>
+        <div class="drop">
+          <div class="big">&#8593;</div>
+          <p>Arrastre y suelte su archivo TGR aquí, o <b style="color:var(--azul)">haga clic para examinar</b></p>
+          <small>Formatos permitidos: .csv, .xlsx, .txt &nbsp;·&nbsp; Codificación UTF-8 / ISO-8859-1</small>
+        </div>
+      </div>
+      <div class="card side">
+        <h2>Recepción automática (SFTP)</h2>
+        <div class="kv"><span>Estado del canal</span><span class="tag ok">Conectado</span></div>
+        <div class="kv"><span>Última lectura</span><b>01-10-2026 08:00</b></div>
+        <div class="kv"><span>Próxima lectura</span><b>01-10-2026 14:00</b></div>
+        <div class="kv"><span>Archivos hoy</span><b>4</b></div>
+        <div style="margin-top:14px"><span class="btn">Forzar lectura SFTP</span></div>
+      </div>
+    </div>
+    <div class="card" style="flex:1">
+      <h2>Lotes recientes</h2>
+      <table>
+        <tr><th>ID Lote</th><th>Nombre de Archivo</th><th>Origen</th><th>Fecha de Recepción</th><th>Registros Totales</th><th>Estado</th><th>Acciones</th></tr>
+        <tr><td class="mono">#405</td><td>TGR_DEUDORES_20261001_02.csv</td><td>Web</td><td>01-10-2026 10:42</td><td>12.480</td><td><span class="tag pen">Pendiente</span></td><td><span class="btn sm">Ver Detalle</span></td></tr>
+        <tr><td class="mono">#404</td><td>TGR_DEUDORES_20261001_01.txt</td><td>SFTP</td><td>01-10-2026 08:00</td><td>98.215</td><td><span class="tag ok">Procesado</span></td><td><span class="btn sm">Ver Detalle</span></td></tr>
+        <tr><td class="mono">#403</td><td>TGR_NOMINA_SEP_R2.xlsx</td><td>Web</td><td>30-09-2026 17:15</td><td>—</td><td><span class="tag err">Error de Formato</span></td><td><span class="btn sm">Reintentar Lote</span></td></tr>
+        <tr><td class="mono">#402</td><td>TGR_DEUDORES_20260930_01.txt</td><td>SFTP</td><td>30-09-2026 08:00</td><td>101.034</td><td><span class="tag ok">Procesado</span></td><td><span class="btn sm">Ver Detalle</span></td></tr>
+        <tr><td class="mono">#401</td><td>TGR_DEUDORES_20260929_01.txt</td><td>SFTP</td><td>29-09-2026 08:00</td><td>95.870</td><td><span class="tag ok">Procesado</span></td><td><span class="btn sm">Ver Detalle</span></td></tr>
+      </table>
+    </div>
+  </div>
+</main>
+</body></html>

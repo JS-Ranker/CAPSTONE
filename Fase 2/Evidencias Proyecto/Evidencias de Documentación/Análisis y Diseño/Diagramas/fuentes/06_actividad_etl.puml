@@ -1,0 +1,38 @@
+@startuml
+!include _style.iuml
+title Diagrama de Actividad - Proceso ETL
+
+start
+:Recepción de archivo TGR\n(carga web o SFTP);
+partition "Extract" {
+  :Registrar archivo en Archivos_TGR;
+  if (¿Cumple esquema y codificación? (RN04)) then (no)
+    :Marcar archivo con estado Error;
+    :Registrar en bitácora;
+    stop
+  else (sí)
+  endif
+  :Parsear encabezado, detalle y totales de control;
+}
+partition "Transform" {
+  :Normalizar fechas y montos;
+  while (¿Quedan registros?) is (sí)
+    if (¿RUT válido Módulo 11? (RN01)) then (no)
+      :Estado = Inválido (Error de Formato);
+    elseif (¿Registro duplicado? (RN02)) then (sí)
+      :Estado = Duplicado;
+    elseif (¿Faltan campos obligatorios? (RN03)) then (sí)
+      :Derivar a bandeja de Excepciones;
+    else (no)
+      :Estado = Válido;
+    endif
+  endwhile (no)
+}
+partition "Load" {
+  :Insertar registros en Registros_TGR;
+  :Activar Motor de Cruce con Core Bancario;
+  :Actualizar estado del archivo = Procesado;
+  :Registrar ejecución en bitácora;
+}
+stop
+@enduml

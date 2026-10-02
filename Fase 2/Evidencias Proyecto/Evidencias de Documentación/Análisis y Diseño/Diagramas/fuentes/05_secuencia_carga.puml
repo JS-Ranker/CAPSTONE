@@ -1,0 +1,42 @@
+@startuml
+!include _style.iuml
+autonumber
+title Diagrama de Secuencia - Carga y procesamiento de archivo TGR (CU02-CU04)
+
+actor "Analista de\nConciliación" as AN
+participant "Frontend Web" as FE
+participant "API Backend" as API
+participant "Motor ETL" as ETL
+participant "Motor de Cruce" as MAT
+participant "Core Bancario" as CORE
+participant "Módulo de IA" as IA
+database "BD TTDH" as DB
+
+AN -> FE : Selecciona y sube archivo TGR
+FE -> API : POST /archivos (archivo)
+API -> DB : Registra Archivos_TGR (estado = Recibido)
+API -> ETL : Procesar archivo
+ETL -> ETL : Validar formato de archivo (RN04)
+alt Archivo no conforme
+  ETL -> DB : Actualiza estado = Error
+  ETL --> API : Rechazo de archivo
+  API --> FE : Muestra error de formato
+else Archivo válido
+  loop Por cada registro
+    ETL -> ETL : Validar RUT Módulo 11 (RN01)
+    ETL -> ETL : Controlar duplicidad (RN02)
+    ETL -> ETL : Verificar campos obligatorios (RN03)
+    ETL -> DB : Inserta Registros_TGR con estado_validacion
+  end
+  ETL -> MAT : Iniciar cruce de registros válidos
+  MAT -> CORE : Consulta cuentas y estados de pago
+  CORE --> MAT : Resultado de consulta
+  MAT -> DB : Inserta Conciliacion_Banco
+  MAT -> IA : Analizar resultados del lote
+  IA -> DB : Inserta Analisis_IA_Anomalias
+  MAT -> DB : Actualiza Archivos_TGR (estado = Procesado)
+  API -> DB : Registra Bitacora_Trazabilidad
+  API --> FE : Resumen del lote procesado
+  FE --> AN : Muestra resultados y alertas
+end
+@enduml

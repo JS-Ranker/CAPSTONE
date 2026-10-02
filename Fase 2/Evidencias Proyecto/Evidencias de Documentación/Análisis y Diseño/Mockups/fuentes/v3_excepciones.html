@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><title>Excepciones</title><link rel="stylesheet" href="base.css">
+<style>
+.filters { display: flex; gap: 12px; align-items: center; }
+.filters .input { width: 260px; color: var(--gris); }
+.chips { display: flex; gap: 10px; }
+.chip { padding: 6px 14px; border-radius: 16px; border: 1px solid var(--borde); font-size: 13px; background: #fff; }
+.chip b { margin-left: 6px; color: var(--gris); }
+.chip.on { background: var(--azul); color: #fff; border-color: var(--azul); }
+.chip.on b { color: #DCE8F5; }
+.pager { display: flex; justify-content: space-between; align-items: center; margin-top: 14px; font-size: 13px; color: var(--gris); }
+</style></head>
+<body>
+<aside>
+  <div class="logo">TTDH Automation<small>Banco Genérico</small></div>
+  <nav>
+    <a><span class="ic"></span>Ingesta de Archivos</a>
+    <a><span class="ic"></span>Dashboard</a>
+    <a class="act"><span class="ic"></span>Bandeja de Excepciones</a>
+    <a><span class="ic"></span>Reportes e IA</a>
+    <div class="sep">Administración</div>
+    <a><span class="ic"></span>Bitácora de Auditoría</a>
+    <a><span class="ic"></span>Usuarios y Roles</a>
+  </nav>
+  <div class="user">María Gaete<br>Analista de Conciliación</div>
+</aside>
+<main>
+  <header>
+    <div><div class="crumbs">Inicio / Excepciones</div><h1>Bandeja de Excepciones y Reglas de Negocio</h1></div>
+    <span class="btn">Exportar a Excel</span>
+  </header>
+  <div class="content">
+    <div class="card">
+      <div class="filters">
+        <select><option>Tipo de error: Todos</option></select>
+        <select><option>Lote: Todos</option></select>
+        <select><option>Estado: Pendiente</option></select>
+        <div class="input">Buscar por RUT de deudor...</div>
+        <span class="btn pri">Filtrar</span>
+      </div>
+      <div class="chips" style="margin-top:14px">
+        <span class="chip on">Todos <b>3.340</b></span>
+        <span class="chip">Error RUT Módulo 11 <b>1.204</b></span>
+        <span class="chip">Duplicado <b>618</b></span>
+        <span class="chip">Campo Vacío <b>877</b></span>
+        <span class="chip">Rechazado por Banco <b>641</b></span>
+      </div>
+    </div>
+    <div class="card" style="flex:1">
+      <h2>Detalle de excepciones</h2>
+      <table>
+        <tr><th>ID Transacción</th><th>Lote</th><th>RUT Deudor</th><th>Folio Deuda</th><th>Monto</th><th>Tipo de Error</th><th>Estado de Revisión</th><th>Acciones</th></tr>
+        <tr><td class="mono">TGR-0098213</td><td>#404</td><td class="mono">12.345.678-9</td><td>F-772310</td><td>$ 1.250.000</td><td><span class="tag err">Error RUT Módulo 11</span></td><td><span class="tag pen">Pendiente</span></td><td><span class="btn sm">Revisar Detalle</span></td></tr>
+        <tr><td class="mono">TGR-0098377</td><td>#404</td><td class="mono">9.876.543-1</td><td>F-772455</td><td>$ 430.500</td><td><span class="tag inf">Duplicado</span></td><td><span class="tag pen">Pendiente</span></td><td><span class="btn sm">Revisar Detalle</span></td></tr>
+        <tr><td class="mono">TGR-0098402</td><td>#404</td><td class="mono">15.432.876-K</td><td>F-772480</td><td>—</td><td><span class="tag pen">Campo Vacío (Monto)</span></td><td><span class="tag pen">Pendiente</span></td><td><span class="btn sm">Revisar Detalle</span></td></tr>
+        <tr><td class="mono">TGR-0097745</td><td>#402</td><td class="mono">7.654.321-6</td><td>F-771020</td><td>$ 2.880.000</td><td><span class="tag err">Rechazado por Banco</span></td><td><span class="tag ok">Resuelto Manual</span></td><td><span class="btn sm">Revisar Detalle</span></td></tr>
+        <tr><td class="mono">TGR-0097801</td><td>#402</td><td class="mono">18.223.904-2</td><td>F-771094</td><td>$ 96.300</td><td><span class="tag err">Rechazado por Banco</span></td><td><span class="tag pen">Pendiente</span></td><td><span class="btn sm">Marcar Regularizado</span></td></tr>
+        <tr><td class="mono">TGR-0097812</td><td>#402</td><td class="mono">11.111.111-2</td><td>F-771102</td><td>$ 640.000</td><td><span class="tag err">Error RUT Módulo 11</span></td><td><span class="tag pen">Pendiente</span></td><td><span class="btn sm">Revisar Detalle</span></td></tr>
+        <tr><td class="mono">TGR-0097830</td><td>#402</td><td class="mono">16.789.012-5</td><td>F-771118</td><td>$ 1.020.750</td><td><span class="tag pen">Campo Vacío (Cuenta)</span></td><td><span class="tag pen">Pendiente</span></td><td><span class="btn sm">Revisar Detalle</span></td></tr>
+      </table>
+      <div class="pager"><span>Mostrando 1–7 de 3.340 excepciones</span><span><span class="btn sm">Anterior</span> &nbsp; <span class="btn sm">Siguiente</span></span></div>
+    </div>
+  </div>
+</main>
+</body></html>

@@ -1,0 +1,35 @@
+@startuml
+!include _style.iuml
+title Diagrama de Despliegue - TTDH Automation
+
+node "Estación del usuario" as PC {
+  artifact "Navegador web" as NAV
+}
+
+node "Red interna Banco Genérico" as RED {
+  node "Servidor de Aplicación" as APP {
+    artifact "Frontend Web" as A1
+    artifact "API Backend" as A2
+  }
+  node "Servidor de Procesamiento" as PROC {
+    artifact "Motor ETL" as P1
+    artifact "Motor de Cruce" as P2
+    artifact "Módulo de IA" as P3
+  }
+  node "Servidor de Base de Datos" as DBS {
+    database "BD Relacional\n(cifrado AES-256)" as DB
+  }
+  node "Active Directory / SSO" as AD
+  node "Core Bancario" as CORE
+}
+
+node "Servidor SFTP\n(intercambio TGR)" as SFTP
+
+NAV --> APP : HTTPS (TLS 1.3)
+APP --> PROC : invocación de procesos
+APP --> DBS : conexión cifrada
+PROC --> DBS : conexión cifrada
+APP --> AD : autenticación
+PROC --> CORE : consulta de cuentas
+PROC --> SFTP : SFTP
+@enduml

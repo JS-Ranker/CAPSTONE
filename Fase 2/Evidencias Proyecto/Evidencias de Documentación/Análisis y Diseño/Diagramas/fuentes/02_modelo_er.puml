@@ -1,0 +1,76 @@
+@startuml
+!include _style.iuml
+hide circle
+hide methods
+title Modelo Entidad-Relación - TTDH Automation
+
+entity "Archivos_TGR" as ARC {
+  * id_archivo : INT <<PK>>
+  --
+  nombre_archivo : VARCHAR
+  fecha_recepcion : TIMESTAMP
+  estado_archivo : VARCHAR
+  total_registros : INT
+}
+
+entity "Registros_TGR" as REG {
+  * id_registro : INT <<PK>>
+  --
+  * id_archivo : INT <<FK>>
+  rut_deudor : VARCHAR
+  folio_deuda : VARCHAR
+  monto_deuda : DECIMAL
+  fecha_origen : DATE
+  estado_validacion : VARCHAR
+}
+
+entity "Conciliacion_Banco" as CON {
+  * id_conciliacion : INT <<PK>>
+  --
+  * id_registro : INT <<FK>>
+  cuenta_bancaria : VARCHAR
+  estado_conciliacion : VARCHAR
+  detalle_observacion : TEXT
+  fecha_cruce : TIMESTAMP
+}
+
+entity "Analisis_IA_Anomalias" as IA {
+  * id_analisis : INT <<PK>>
+  --
+  * id_conciliacion : INT <<FK>>
+  nivel_anomalia : VARCHAR
+  sugerencia_ia : TEXT
+  fecha_analisis : TIMESTAMP
+}
+
+entity "Roles" as ROL {
+  * id_rol : INT <<PK>>
+  --
+  nombre_rol : VARCHAR
+  descripcion : VARCHAR
+}
+
+entity "Usuarios" as USR {
+  * id_usuario : INT <<PK>>
+  --
+  * id_rol : INT <<FK>>
+  usuario_ad : VARCHAR
+  nombre_completo : VARCHAR
+  activo : BOOLEAN
+}
+
+entity "Bitacora_Trazabilidad" as BIT {
+  * id_bitacora : INT <<PK>>
+  --
+  * id_usuario : INT <<FK>>
+  accion_ejecutada : VARCHAR
+  timestamp_accion : TIMESTAMP
+  detalle_cambio : TEXT
+}
+
+ARC ||--o{ REG : "contiene"
+REG ||--o| CON : "se concilia en"
+CON ||--o{ IA : "es analizada en"
+ROL ||--o{ USR : "asigna"
+USR ||--o{ BIT : "registra"
+@enduml

@@ -1,0 +1,51 @@
+@startuml
+!include _style.iuml
+left to right direction
+title Diagrama de Casos de Uso - TTDH Automation
+
+actor "Usuario de\nConsulta" as UC
+actor "Analista de\nConciliación" as AN
+actor "Auditor" as AU
+actor "Administrador" as AD
+AN -|> UC
+AU -|> UC
+AD -|> AN
+
+actor "TGR\n(SFTP)" as TGR <<sistema>>
+actor "Core Bancario\nBanco Genérico" as CORE <<sistema>>
+actor "Active Directory\n/ SSO" as SSO <<sistema>>
+
+rectangle "Plataforma TTDH Automation" {
+  usecase "CU01 Iniciar sesión" as CU01
+  usecase "CU02 Cargar archivo TGR" as CU02
+  usecase "CU03 Procesar y validar\narchivo (ETL)" as CU03
+  usecase "CU04 Ejecutar cruce con\nCore Bancario" as CU04
+  usecase "CU05 Gestionar excepciones\ny rechazos" as CU05
+  usecase "CU06 Consultar dashboard\nde monitoreo" as CU06
+  usecase "CU07 Generar archivo de\nrespuesta TGR" as CU07
+  usecase "CU08 Consultar insights\nde IA" as CU08
+  usecase "CU09 Exportar reportes\ny resultados" as CU09
+  usecase "CU10 Administrar usuarios\ny roles" as CU10
+  usecase "CU11 Consultar bitácora\nde auditoría" as CU11
+}
+
+UC --> CU01
+UC --> CU06
+AN --> CU02
+AN --> CU05
+AN --> CU07
+AN --> CU08
+AN --> CU09
+AU --> CU09
+AU --> CU11
+AD --> CU10
+AD --> CU11
+
+CU02 ..> CU03 : <<include>>
+CU03 ..> CU04 : <<include>>
+CU08 ..> CU06 : <<extend>>
+
+CU01 --> SSO
+TGR --> CU02
+CU04 --> CORE
+@enduml

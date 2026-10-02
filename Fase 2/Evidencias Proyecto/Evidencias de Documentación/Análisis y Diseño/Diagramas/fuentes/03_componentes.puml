@@ -1,0 +1,51 @@
+@startuml
+!include _style.iuml
+title Diagrama de Componentes - TTDH Automation
+
+actor "Usuario\n(navegador)" as U
+
+package "Capa de Presentación" {
+  [Frontend Web / Dashboard] as FE
+}
+
+package "Capa de Aplicación" {
+  [API Backend] as API
+  [Servicio de Autenticación\ny Roles (RBAC)] as AUTH
+  [Servicio de Auditoría] as AUD
+  [Módulo de Reportes\ny Exportación] as REP
+}
+
+package "Capa de Procesamiento" {
+  [Módulo de Ingesta\n(Web + SFTP)] as ING
+  [Motor ETL\n(Parsing + Validación RN01-RN04)] as ETL
+  [Motor de Cruce\n(Matching)] as MAT
+  [Módulo de IA\n(Anomalías y sugerencias)] as IAM
+}
+
+database "BD Relacional\nTTDH" as DB
+
+node "Servidor SFTP TGR" as SFTP
+node "Core Bancario\nBanco Genérico" as CORE
+node "Active Directory / SSO" as AD
+
+U --> FE : HTTPS
+FE --> API : REST / JSON
+API --> AUTH
+AUTH --> AD : LDAP / SAML
+API --> ING
+API --> REP
+API --> IAM
+SFTP --> ING : archivos TGR
+ING --> ETL
+ETL --> MAT
+MAT --> CORE : consulta cuentas
+MAT --> IAM
+ETL --> DB
+MAT --> DB
+IAM --> DB
+REP --> DB
+AUD --> DB
+API ..> AUD : registra acciones
+ETL ..> AUD
+MAT ..> AUD
+@enduml

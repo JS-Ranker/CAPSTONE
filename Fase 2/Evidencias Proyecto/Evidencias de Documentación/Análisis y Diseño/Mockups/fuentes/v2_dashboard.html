@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><title>Dashboard</title><link rel="stylesheet" href="base.css">
+<style>
+.kpi { flex: 1; padding: 18px 20px; }
+.kpi .lbl { font-size: 13px; color: var(--gris); }
+.kpi .val { font-size: 30px; font-weight: 700; margin: 6px 0 4px; }
+.kpi .sub { font-size: 12px; color: var(--gris); }
+.kpi.b { border-top: 4px solid var(--azul); }
+.kpi.g { border-top: 4px solid var(--verde); }
+.kpi.r { border-top: 4px solid var(--rojo); }
+.kpi.y { border-top: 4px solid var(--amar); }
+.pie { width: 190px; height: 190px; border-radius: 50%; background: conic-gradient(var(--verde) 0 94.5%, var(--rojo) 94.5% 97.7%, var(--amar) 97.7% 100%); position: relative; }
+.pie::after { content: ""; position: absolute; inset: 45px; background: #fff; border-radius: 50%; }
+.legend div { display: flex; align-items: center; gap: 8px; margin: 8px 0; font-size: 13px; }
+.legend i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+.bars { display: flex; align-items: flex-end; gap: 22px; height: 190px; padding: 0 10px; border-bottom: 1px solid var(--borde); }
+.bars div { flex: 1; background: var(--azul); border-radius: 4px 4px 0 0; position: relative; }
+.bars div span { position: absolute; top: -20px; left: 0; right: 0; text-align: center; font-size: 11px; color: var(--gris); }
+.blbl { display: flex; gap: 22px; padding: 6px 10px 0; }
+.blbl span { flex: 1; text-align: center; font-size: 12px; color: var(--gris); }
+.alert { display: flex; gap: 12px; padding: 10px 12px; border-radius: 6px; margin-bottom: 10px; font-size: 13px; align-items: flex-start; }
+.alert b { display: block; margin-bottom: 2px; }
+.alert.a { background: #FBE5E2; border-left: 4px solid var(--rojo); }
+.alert.m { background: #FFF4D6; border-left: 4px solid var(--amar); }
+.alert.i { background: var(--azul-cl); border-left: 4px solid var(--azul); }
+</style></head>
+<body>
+<aside>
+  <div class="logo">TTDH Automation<small>Banco Genérico</small></div>
+  <nav>
+    <a><span class="ic"></span>Ingesta de Archivos</a>
+    <a class="act"><span class="ic"></span>Dashboard</a>
+    <a><span class="ic"></span>Bandeja de Excepciones</a>
+    <a><span class="ic"></span>Reportes e IA</a>
+    <div class="sep">Administración</div>
+    <a><span class="ic"></span>Bitácora de Auditoría</a>
+    <a><span class="ic"></span>Usuarios y Roles</a>
+  </nav>
+  <div class="user">María Gaete<br>Analista de Conciliación</div>
+</aside>
+<main>
+  <header>
+    <div><div class="crumbs">Inicio / Dashboard</div><h1>Panel de Control y Monitoreo</h1></div>
+    <div style="display:flex;gap:10px"><select><option>Últimos 7 días</option></select><span class="btn">Exportar CSV</span><span class="btn">Exportar PDF</span></div>
+  </header>
+  <div class="content">
+    <div class="row">
+      <div class="card kpi b"><div class="lbl">Total Registros Procesados</div><div class="val">145.200</div><div class="sub">5 lotes en el periodo</div></div>
+      <div class="card kpi g"><div class="lbl">Registros Conciliados con Éxito</div><div class="val" style="color:var(--verde)">94,5%</div><div class="sub">137.214 registros</div></div>
+      <div class="card kpi r"><div class="lbl">Rechazos por Banco</div><div class="val" style="color:var(--rojo)">3,2%</div><div class="sub">4.646 registros</div></div>
+      <div class="card kpi y"><div class="lbl">Excepciones Pendientes</div><div class="val" style="color:#9A7400">2,3%</div><div class="sub">3.340 registros</div></div>
+    </div>
+    <div class="row" style="flex:1">
+      <div class="card" style="width:380px">
+        <h2>Distribución de estados de conciliación</h2>
+        <div style="display:flex;gap:24px;align-items:center;margin-top:16px">
+          <div class="pie"></div>
+          <div class="legend">
+            <div><i style="background:var(--verde)"></i>Conciliado (94,5%)</div>
+            <div><i style="background:var(--rojo)"></i>Rechazado Banco (3,2%)</div>
+            <div><i style="background:var(--amar)"></i>Error RUT / Excepción (2,3%)</div>
+          </div>
+        </div>
+      </div>
+      <div class="card" style="flex:1">
+        <h2>Volumen de transacciones procesadas por día</h2>
+        <div class="bars" style="margin-top:30px">
+          <div style="height:72%"><span>26.100</span></div>
+          <div style="height:85%"><span>30.400</span></div>
+          <div style="height:66%"><span>23.800</span></div>
+          <div style="height:92%"><span>33.050</span></div>
+          <div style="height:88%"><span>31.850</span></div>
+          <div style="height:0%;background:#C9D6E3"><span>0</span></div>
+          <div style="height:0%;background:#C9D6E3"><span>0</span></div>
+        </div>
+        <div class="blbl"><span>Lun</span><span>Mar</span><span>Mié</span><span>Jue</span><span>Vie</span><span>Sáb</span><span>Dom</span></div>
+      </div>
+      <div class="card" style="width:330px">
+        <h2>Alertas del sistema</h2>
+        <div class="alert a"><div><b>Lote #403 rechazado</b>Estructura de encabezado no conforme (RN04).</div></div>
+        <div class="alert m"><div><b>Anomalía detectada por IA</b>Alza de 38% en rechazos por cuenta inválida en lote #402.</div></div>
+        <div class="alert i"><div><b>Lote #405 en proceso</b>12.480 registros en validación.</div></div>
+      </div>
+    </div>
+  </div>
+</main>
+</body></html>

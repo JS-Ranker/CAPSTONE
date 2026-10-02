@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><title>Reportes e IA</title><link rel="stylesheet" href="base.css">
+<style>
+.filters { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
+.f label { display: block; font-size: 12px; color: var(--gris); margin-bottom: 4px; }
+.ia { background: linear-gradient(135deg, #EEF4FB, #F7F2FF); border: 1px solid #C9D9EE; }
+.ia h2 { display: flex; align-items: center; gap: 10px; }
+.badge { font-size: 11px; background: #6C4BB6; color: #fff; padding: 3px 8px; border-radius: 10px; font-weight: 600; }
+.ins { background: #fff; border: 1px solid var(--borde); border-radius: 8px; padding: 14px 16px; margin-bottom: 12px; display: flex; gap: 16px; align-items: center; }
+.ins .txt { flex: 1; font-size: 13px; line-height: 1.45; }
+.ins .txt b { display: block; font-size: 14px; margin-bottom: 3px; }
+.lvl { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 10px; white-space: nowrap; }
+.hi { background: #FBE5E2; color: var(--rojo); }
+.md { background: #FFF4D6; color: #9A7400; }
+.lo { background: #E3F4EA; color: var(--verde); }
+.ask { display: flex; gap: 10px; margin-top: 6px; }
+.ask .input { flex: 1; color: var(--gris); }
+</style></head>
+<body>
+<aside>
+  <div class="logo">TTDH Automation<small>Banco Genérico</small></div>
+  <nav>
+    <a><span class="ic"></span>Ingesta de Archivos</a>
+    <a><span class="ic"></span>Dashboard</a>
+    <a><span class="ic"></span>Bandeja de Excepciones</a>
+    <a class="act"><span class="ic"></span>Reportes e IA</a>
+    <div class="sep">Administración</div>
+    <a><span class="ic"></span>Bitácora de Auditoría</a>
+    <a><span class="ic"></span>Usuarios y Roles</a>
+  </nav>
+  <div class="user">María Gaete<br>Analista de Conciliación</div>
+</aside>
+<main>
+  <header>
+    <div><div class="crumbs">Inicio / Reportes e IA</div><h1>Reportes e Insights de Inteligencia Artificial</h1></div>
+  </header>
+  <div class="content">
+    <div class="card">
+      <h2>Parámetros del reporte</h2>
+      <div class="filters">
+        <div class="f"><label>Desde</label><div class="input">01-09-2026</div></div>
+        <div class="f"><label>Hasta</label><div class="input">30-09-2026</div></div>
+        <div class="f"><label>Tipo de cuenta</label><select><option>Todas</option></select></div>
+        <div class="f"><label>Sucursal</label><select><option>Todas las sucursales</option></select></div>
+        <div class="f"><label>Tipo de reporte</label><select><option>Resumen de conciliación</option></select></div>
+        <span class="btn pri">Generar</span>
+        <span class="btn">Exportar a Excel</span>
+        <span class="btn">Exportar a PDF</span>
+      </div>
+    </div>
+    <div class="row" style="flex:1">
+      <div class="card ia" style="flex:1.4">
+        <h2>Insights de IA <span class="badge">IA</span></h2>
+        <div class="ins"><span class="lvl hi">ALTO</span><div class="txt"><b>Patrón anómalo en rechazos de la Región Metropolitana</b>Se sugiere validar el formato de cuentas corrientes en el lote #402: el 38% de los rechazos comparte el mismo prefijo de cuenta.</div><span class="btn pri sm">Aplicar Sugerencia de Validación</span></div>
+        <div class="ins"><span class="lvl md">MEDIO</span><div class="txt"><b>Aumento de duplicados entre lotes consecutivos</b>618 registros del lote #404 coinciden con el lote #402. Se sugiere revisar el reenvío de nóminas desde la TGR.</div><span class="btn sm">Ver registros</span></div>
+        <div class="ins"><span class="lvl lo">BAJO</span><div class="txt"><b>Resumen ejecutivo del día</b>98.215 registros procesados; tasa de conciliación de 95,1%, superior al promedio semanal (94,5%).</div><span class="btn sm">Ver resumen</span></div>
+        <div class="ask"><div class="input">Haga una consulta en lenguaje natural, ej.: "¿Cuáles fueron las principales causas de rechazo esta semana?"</div><span class="btn pri">Consultar</span></div>
+      </div>
+      <div class="card" style="flex:1">
+        <h2>Reportes generados</h2>
+        <table>
+          <tr><th>Reporte</th><th>Periodo</th><th>Formato</th><th></th></tr>
+          <tr><td>Resumen de conciliación</td><td>Sep 2026</td><td><span class="tag inf">PDF</span></td><td><span class="btn sm">Descargar</span></td></tr>
+          <tr><td>Archivo de respuesta TGR</td><td>30-09-2026</td><td><span class="tag inf">TXT</span></td><td><span class="btn sm">Descargar</span></td></tr>
+          <tr><td>Detalle de rechazos</td><td>Sem. 39</td><td><span class="tag inf">XLSX</span></td><td><span class="btn sm">Descargar</span></td></tr>
+          <tr><td>Excepciones pendientes</td><td>Sem. 39</td><td><span class="tag inf">CSV</span></td><td><span class="btn sm">Descargar</span></td></tr>
+          <tr><td>Resumen de conciliación</td><td>Ago 2026</td><td><span class="tag inf">PDF</span></td><td><span class="btn sm">Descargar</span></td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</main>
+</body></html>
