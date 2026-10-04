@@ -1,26 +1,55 @@
 @startuml
 !include _style.iuml
 autonumber
-title Diagrama de Secuencia - Carga y procesamiento de archivo TGR (CU02-CU04)
+title Diagrama de Secuencia - Recepción y procesamiento de documento TGR (CU02, CU12, CU03, CU04)
 
 actor "Analista de\nConciliación" as AN
 participant "Frontend Web" as FE
 participant "API Backend" as API
+participant "Servidor de\nCorreo" as MAIL
+participant "Módulo de\nRecepción" as REC
+participant "Módulo de\nExtracción" as EXT
+participant "Servicio\nOCR / IA" as OCR
 participant "Motor ETL" as ETL
 participant "Motor de Cruce" as MAT
 participant "Core Bancario" as CORE
 participant "Módulo de IA" as IA
 database "BD TTDH" as DB
 
-AN -> FE : Selecciona y sube archivo TGR
-FE -> API : POST /archivos (archivo)
-API -> DB : Registra Archivos_TGR (estado = Recibido)
-API -> ETL : Procesar archivo
+alt Recepción automática por correo
+  REC -> MAIL : Leer casilla institucional (programado)
+  MAIL --> REC : Correos nuevos con adjuntos
+  REC -> REC : Validar remitente y tipo de archivo
+  REC -> DB : Registra Archivos_TGR\n(canal_origen = Correo, remitente, estado = Recibido)
+else Carga manual vía web
+  AN -> FE : Selecciona y sube archivo TGR
+  FE -> API : POST /archivos (archivo)
+  API -> REC : Registrar archivo
+  REC -> DB : Registra Archivos_TGR\n(canal_origen = Web, estado = Recibido)
+end
+
+opt Documento PDF o imagen (CU12)
+  REC -> EXT : Extraer y normalizar documento
+  alt PDF con texto
+    EXT -> EXT : Extraer tablas del PDF
+  else PDF escaneado o fotografía
+    EXT -> OCR : Enviar imagen preprocesada
+    OCR --> EXT : Campos de cada registro + confianza
+  end
+  EXT -> EXT : Mapear a plantilla estándar y\ncomparar con totales de control (RN05)
+  alt Confianza bajo el umbral o totales no cuadran
+    EXT -> DB : Registros a Bandeja de Excepciones\n(Revisión de Extracción)
+  end
+  EXT -> DB : Actualiza Archivos_TGR\n(estado = Normalizado, confianza_extraccion)
+end
+
+REC -> ETL : Procesar archivo
 ETL -> ETL : Validar formato de archivo (RN04)
 alt Archivo no conforme
   ETL -> DB : Actualiza estado = Error
   ETL --> API : Rechazo de archivo
-  API --> FE : Muestra error de formato
+  API --> FE : Notifica error de formato
+  FE --> AN : Muestra error de formato
 else Archivo válido
   loop Por cada registro
     ETL -> ETL : Validar RUT Módulo 11 (RN01)
@@ -35,6 +64,7 @@ else Archivo válido
   MAT -> IA : Analizar resultados del lote
   IA -> DB : Inserta Analisis_IA_Anomalias
   MAT -> DB : Actualiza Archivos_TGR (estado = Procesado)
+  MAT --> API : Lote procesado
   API -> DB : Registra Bitacora_Trazabilidad
   API --> FE : Resumen del lote procesado
   FE --> AN : Muestra resultados y alertas

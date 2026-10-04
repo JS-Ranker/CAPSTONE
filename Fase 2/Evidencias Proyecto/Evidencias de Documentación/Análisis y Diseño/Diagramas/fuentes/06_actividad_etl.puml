@@ -3,9 +3,26 @@
 title Diagrama de Actividad - Proceso ETL
 
 start
-:Recepción de archivo TGR\n(carga web o SFTP);
+:Recepción de documento TGR\n(correo, SFTP o carga web);
+partition "Recepción y Extracción" {
+  :Descargar adjunto y guardar\ndocumento original;
+  :Registrar documento en Archivos_TGR;
+  if (¿Formato estructurado?\n(Excel / CSV / TXT)) then (sí)
+  else (no)
+    if (¿PDF con texto?) then (sí)
+      :Extraer tablas del PDF;
+    else (no)
+      :OCR + IA con visión\n(PDF escaneado o fotografía);
+    endif
+    :Mapear a plantilla estándar\ncon nivel de confianza;
+    if (¿Confianza y totales OK? (RN05)) then (no)
+      :Derivar a Bandeja de Excepciones\n(Revisión de Extracción);
+      stop
+    else (sí)
+    endif
+  endif
+}
 partition "Extract" {
-  :Registrar archivo en Archivos_TGR;
   if (¿Cumple esquema y codificación? (RN04)) then (no)
     :Marcar archivo con estado Error;
     :Registrar en bitácora;

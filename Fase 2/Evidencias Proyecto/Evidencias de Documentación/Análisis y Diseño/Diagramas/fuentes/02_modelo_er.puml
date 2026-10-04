@@ -8,9 +8,14 @@ entity "Archivos_TGR" as ARC {
   * id_archivo : INT <<PK>>
   --
   nombre_archivo : VARCHAR
+  canal_origen : VARCHAR
+  remitente : VARCHAR
+  tipo_documento : VARCHAR
+  ruta_original : VARCHAR
   fecha_recepcion : TIMESTAMP
   estado_archivo : VARCHAR
   total_registros : INT
+  confianza_extraccion : DECIMAL
 }
 
 entity "Registros_TGR" as REG {
@@ -22,6 +27,7 @@ entity "Registros_TGR" as REG {
   monto_deuda : DECIMAL
   fecha_origen : DATE
   estado_validacion : VARCHAR
+  confianza_extraccion : DECIMAL
 }
 
 entity "Conciliacion_Banco" as CON {

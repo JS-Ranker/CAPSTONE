@@ -11,13 +11,14 @@ AN -|> UC
 AU -|> UC
 AD -|> AN
 
-actor "TGR\n(SFTP)" as TGR <<sistema>>
+actor "TGR\n(Correo / SFTP)" as TGR <<sistema>>
 actor "Core Bancario\nBanco Genérico" as CORE <<sistema>>
 actor "Active Directory\n/ SSO" as SSO <<sistema>>
+actor "Servicio de\nOCR / IA" as OCR <<sistema>>
 
 rectangle "Plataforma TTDH Automation" {
   usecase "CU01 Iniciar sesión" as CU01
-  usecase "CU02 Cargar archivo TGR" as CU02
+  usecase "CU02 Recibir y cargar\ndocumentos TGR" as CU02
   usecase "CU03 Procesar y validar\narchivo (ETL)" as CU03
   usecase "CU04 Ejecutar cruce con\nCore Bancario" as CU04
   usecase "CU05 Gestionar excepciones\ny rechazos" as CU05
@@ -27,6 +28,7 @@ rectangle "Plataforma TTDH Automation" {
   usecase "CU09 Exportar reportes\ny resultados" as CU09
   usecase "CU10 Administrar usuarios\ny roles" as CU10
   usecase "CU11 Consultar bitácora\nde auditoría" as CU11
+  usecase "CU12 Extraer y normalizar\ndocumento (OCR/IA)" as CU12
 }
 
 UC --> CU01
@@ -44,8 +46,10 @@ AD --> CU11
 CU02 ..> CU03 : <<include>>
 CU03 ..> CU04 : <<include>>
 CU08 ..> CU06 : <<extend>>
+CU12 ..> CU02 : <<extend>>\n[PDF o imagen]
 
 CU01 --> SSO
 TGR --> CU02
 CU04 --> CORE
+CU12 --> OCR
 @enduml

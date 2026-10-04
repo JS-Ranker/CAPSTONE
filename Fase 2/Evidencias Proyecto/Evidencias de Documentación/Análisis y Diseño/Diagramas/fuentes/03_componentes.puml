@@ -16,15 +16,19 @@ package "Capa de Aplicación" {
 }
 
 package "Capa de Procesamiento" {
-  [Módulo de Ingesta\n(Web + SFTP)] as ING
+  [Módulo de Recepción\n(Correo + Web + SFTP)] as ING
+  [Módulo de Extracción\n(PDF / OCR / IA)] as EXT
   [Motor ETL\n(Parsing + Validación RN01-RN04)] as ETL
   [Motor de Cruce\n(Matching)] as MAT
   [Módulo de IA\n(Anomalías y sugerencias)] as IAM
 }
 
 database "BD Relacional\nTTDH" as DB
+database "Repositorio de\ndocumentos originales" as REPO
 
+node "Servidor de Correo\n(casilla institucional)" as MAIL
 node "Servidor SFTP TGR" as SFTP
+node "Servicio OCR / IA\n(visión)" as OCR
 node "Core Bancario\nBanco Genérico" as CORE
 node "Active Directory / SSO" as AD
 
@@ -35,8 +39,13 @@ AUTH --> AD : LDAP / SAML
 API --> ING
 API --> REP
 API --> IAM
+MAIL --> ING : adjuntos (IMAP / API)
 SFTP --> ING : archivos TGR
-ING --> ETL
+ING --> REPO : guarda original
+ING --> ETL : Excel / CSV / TXT
+ING --> EXT : PDF / imágenes
+EXT --> OCR : imagen
+EXT --> ETL : plantilla estándar
 ETL --> MAT
 MAT --> CORE : consulta cuentas
 MAT --> IAM
@@ -47,5 +56,6 @@ REP --> DB
 AUD --> DB
 API ..> AUD : registra acciones
 ETL ..> AUD
+EXT ..> AUD
 MAT ..> AUD
 @enduml

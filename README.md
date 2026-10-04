@@ -28,9 +28,9 @@ Proyecto **Capstone (APT)** de la carrera de Ingeniería en Informática — Duo
 
 ## 📌 Descripción
 
-**TTDH Automation** es una plataforma informática que automatiza el procesamiento de información de registros de deudores, desde su recepción y validación hasta el cruce con las bases de datos de la organización y la generación de reportes.
+**TTDH Automation** es una plataforma informática que automatiza el procesamiento de información de registros de deudores, desde su recepción —por correo electrónico, SFTP o carga web, en Excel, CSV, PDF, documentos escaneados o fotografías— y validación hasta el cruce con las bases de datos de la organización y la generación de reportes.
 
-La solución incorpora un proceso **ETL** capaz de trabajar con distintos formatos de archivos, aplicar reglas de validación y de negocio, detectar cambios respecto de procesos anteriores y mantener la trazabilidad de cada ejecución. Además, permite generar reportes parametrizables e integra un componente de **Inteligencia Artificial** para apoyar la detección de anomalías y sugerir nuevas validaciones.
+La solución incorpora un módulo de **extracción con OCR e IA** que convierte los PDF, escaneos y fotografías a una plantilla estándar, y un proceso **ETL** capaz de trabajar con distintos formatos de archivos, aplicar reglas de validación y de negocio, detectar cambios respecto de procesos anteriores y mantener la trazabilidad de cada ejecución. Además, permite generar reportes parametrizables e integra un componente de **Inteligencia Artificial** para apoyar la detección de anomalías y sugerir nuevas validaciones.
 
 ## 🎯 Problema que resuelve
 
@@ -50,7 +50,10 @@ El flujo general de la plataforma es el siguiente:
 
 ```mermaid
 flowchart LR
-    A["📥 Tesorería General<br/>de la República<br/>(archivos de deudores)"] --> B["⚙️ Recepción y<br/>Proceso ETL"]
+    A["📥 Tesorería General<br/>de la República<br/>(correo, SFTP o web)"] --> R["📧 Recepción de<br/>documentos"]
+    R -->|"Excel / CSV / TXT"| B["⚙️ Proceso ETL"]
+    R -->|"PDF / escaneos / fotos"| X["🔎 Extracción<br/>OCR + IA"]
+    X -->|"plantilla estándar"| B
     B --> C["🔍 Validaciones y<br/>reglas de negocio<br/>(RUT, duplicados, formatos)"]
     C --> D["🗄️ Cruce con BD<br/>de Banco Genérico"]
     D --> E["🕓 Trazabilidad y<br/>comparación histórica"]
@@ -58,7 +61,8 @@ flowchart LR
     F --> G["📈 Dashboard<br/>de monitoreo"]
 ```
 
-1. **Entrada:** la Tesorería General de la República envía periódicamente archivos con los datos de los deudores.
+1. **Entrada:** la Tesorería General de la República envía periódicamente los documentos con los datos de los deudores a la casilla de correo institucional (también se aceptan SFTP y carga web), en Excel, CSV, TXT, PDF, documentos escaneados o fotografías.
+   - **Extracción (OCR/IA):** los PDF, escaneos y fotografías se convierten a una plantilla estándar; los registros con baja confianza se derivan a revisión manual.
 2. **Procesamiento (ETL):** la plataforma recibe los archivos y ejecuta un proceso que extrae, transforma y valida la información (RUT, duplicados, campos incompletos y formatos), aplicando las reglas de negocio definidas.
 3. **Cruce de datos:** la información validada se cruza con las bases de datos de Banco Genérico para identificar coincidencias, cambios e inconsistencias.
 4. **Trazabilidad:** se registra cada ejecución, manteniendo el historial y la comparación entre procesos.
@@ -67,7 +71,9 @@ flowchart LR
 
 ## ✨ Características principales
 
-- Recepción de archivos en múltiples formatos (CSV, Excel, entre otros).
+- Recepción automática de documentos desde la casilla de correo institucional, SFTP o carga web.
+- Soporte para Excel, CSV, TXT, PDF, documentos escaneados y fotografías.
+- Extracción de datos con OCR e IA, con nivel de confianza por registro y revisión manual de los datos dudosos.
 - Proceso ETL configurable (extracción, transformación, validación y carga).
 - Validaciones automáticas: RUT, duplicados, campos incompletos y formatos.
 - Aplicación de reglas de negocio.
@@ -79,19 +85,22 @@ flowchart LR
 
 ## 📋 Requerimientos funcionales
 
-| Código | Requerimiento funcional |
-|--------|-------------------------|
-| RF01 | El sistema debe permitir la recepción de archivos con datos de deudores en distintos formatos (CSV, Excel, entre otros). |
-| RF02 | El sistema debe ejecutar un proceso ETL que extraiga, transforme y cargue la información recibida. |
-| RF03 | El sistema debe validar el RUT de cada registro procesado. |
-| RF04 | El sistema debe detectar registros duplicados, campos incompletos y formatos inválidos. |
-| RF05 | El sistema debe aplicar las reglas de negocio definidas para el procesamiento de los registros. |
-| RF06 | El sistema debe cruzar la información validada con las bases de datos de Banco Genérico. |
-| RF07 | El sistema debe identificar registros nuevos, modificados, eliminados y sin cambios respecto de procesos anteriores. |
-| RF08 | El sistema debe registrar cada ejecución, manteniendo la trazabilidad y el historial de los procesos. |
-| RF09 | El sistema debe generar reportes parametrizables y exportables en distintos formatos. |
-| RF10 | El sistema debe incorporar un componente de IA que apoye la detección de anomalías y sugiera nuevas validaciones. |
-| RF11 | El sistema debe presentar un dashboard de monitoreo con el estado y los resultados de los procesos. |
+> Fuente oficial: *Documento de Especificación de Requerimientos (ERS)*.
+
+| Código | Requerimiento | Descripción |
+|--------|---------------|-------------|
+| RF01 | Recepción Multicanal y Multiformato de Documentos TGR | El sistema debe recibir los documentos TGR por correo electrónico institucional, SFTP o carga web, en formatos estructurados (Excel, CSV, TXT) y no estructurados (PDF, escaneos y fotografías). |
+| RF02 | Parsing y Extracción Automatizada | El sistema debe parsear los archivos TGR, identificando encabezados, detalle de transacciones y sumatorias de control. |
+| RF03 | Motor de Validación de Datos | El sistema debe aplicar las reglas de validación (RUT, duplicados, campos obligatorios y formato) antes del cruce. |
+| RF04 | Cruce Automático con Banco Genérico | El sistema debe cruzar la información TGR con el Core Bancario de Banco Genérico. |
+| RF05 | Gestión de Excepciones y Rechazos | El sistema debe categorizar automáticamente las causas de rechazo y derivar las excepciones a revisión manual. |
+| RF06 | Dashboard Analítico e Interactivo | El sistema debe presentar un dashboard con métricas en tiempo real, estados de conciliación y KPIs. |
+| RF07 | Generación de Reportes de Salida TGR | El sistema debe generar los archivos de respuesta de rendición para la TGR con la estructura exigida. |
+| RF08 | Módulo de Inteligencia Artificial Analítica | El sistema debe incorporar IA para interpretar tendencias de rechazo, detectar anomalías y resumir hallazgos. |
+| RF09 | Gestión de Roles y Permisos (RBAC) | El sistema debe administrar usuarios con roles diferenciados (RBAC). |
+| RF10 | Módulo de Auditoría y Trazabilidad Total | El sistema debe registrar una bitácora inalterable de todas las acciones realizadas. |
+| RF11 | Exportación de Resultados y Métricas | El sistema debe exportar datasets y reportes en formatos estándar (Excel, PDF, CSV). |
+| RF12 | Extracción y Normalización de Documentos (OCR/IA) | El sistema debe extraer los datos de PDF, escaneos y fotografías mediante OCR e IA, con un nivel de confianza por registro. |
 
 ## 🛠 Stack tecnológico
 
