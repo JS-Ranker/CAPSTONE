@@ -108,61 +108,99 @@ flowchart LR
 
 | Área | Tecnología |
 |------|------------|
-| Lenguaje / Backend (API) | Python |
+| Lenguaje / Backend (API) | Python + FastAPI |
 | Base de datos | Microsoft SQL Server (Developer / Express) |
 | Proceso ETL | Python + Pandas |
 | Extracción de documentos (OCR) | Tesseract OCR, ejecutado localmente |
 | Inteligencia Artificial | Python + Scikit-Learn |
-| Frontend / Dashboard | React |
+| Frontend / Dashboard | React + Vite |
 | Control de versiones | Git / GitHub |
 
 ## 📂 Estructura del repositorio
 
-> Las carpetas de código (`backend/`, `frontend/`, `database/`, `data/` y `tests/`) son referenciales y se crearán en la actividad *Configuración del entorno de desarrollo y datos simulados*.
+El repositorio sigue el formato de evidencias establecido para cada fase del Capstone:
 
 ```
 CAPSTONE/
-├── Fase 1/             # Evidencias de la Fase 1 (individuales y grupales)
-├── Fase 2/             # Evidencias de la Fase 2 (individuales, grupales y de proyecto)
-├── Fase 3/             # Evidencias de la Fase 3
-├── backend/            # Python: API, recepción, extracción OCR, ETL, validaciones, cruce e IA
-├── frontend/           # React: dashboard y pantallas de la plataforma
-├── database/           # Scripts SQL Server (creación de tablas y datos de prueba)
-├── data/               # Datos y documentos simulados (no subir datos reales/sensibles)
-├── tests/              # Pruebas unitarias, funcionales y de integración
+├── Fase 1/
+│   ├── Evidencias Individuales/
+│   └── Evidencias Grupales/
+├── Fase 2/
+│   ├── Evidencias Individuales/      # Apellido_Nombre_2.1_APT122_DiarioReflexionFase2.docx
+│   ├── Evidencias Grupales/          # 2.4_GuiaEstudiante_Fase 2_DesarrolloProyecto APT (Español).docx
+│   └── Evidencias Proyecto/
+│       ├── Presentación Proyecto.pptx     # (pendiente)
+│       ├── Evidencias de Documentación/   # planificación, análisis y diseño, actas de seguimiento
+│       └── Evidencias de sistema/
+│           ├── Aplicación/
+│           │   ├── backend/          # Python + FastAPI
+│           │   │   ├── app/
+│           │   │   │   ├── main.py       # API REST (endpoints /api/...)
+│           │   │   │   ├── config.py     # configuración desde backend/.env
+│           │   │   │   ├── db.py         # conexión a SQL Server
+│           │   │   │   └── modulos/      # recepcion, extraccion, etl, validaciones,
+│           │   │   │                     # cruce, trazabilidad, ia, reportes
+│           │   │   ├── tests/            # pruebas con pytest
+│           │   │   ├── requirements.txt
+│           │   │   └── .env.example      # plantilla de configuración (copiar como .env)
+│           │   ├── frontend/         # React + Vite: dashboard y pantallas
+│           │   └── data/             # datos y documentos simulados (nunca datos reales)
+│           └── Base de datos/        # scripts SQL Server: base de datos, tablas y datos iniciales
+├── Fase 3/
+├── .gitignore
 └── README.md
 ```
 
+Cada paquete de `backend/app/modulos/` indica en su `__init__.py` qué requerimientos cubre y quién es su responsable.
+
 ## 🚀 Instalación y ejecución
 
-> _Instrucciones referenciales según el stack definido. Se confirmarán al configurar el entorno de desarrollo._
+**Requisitos previos:**
 
-**Requisitos previos:** Python 3, Node.js, SQL Server (Developer o Express) y Tesseract OCR instalado en el equipo.
+- Python 3.12 o superior
+- Node.js 20 o superior
+- SQL Server 2019 o superior (Developer o Express) con `sqlcmd` y el *ODBC Driver 17 o 18 for SQL Server*
+- Tesseract OCR (instalador para Windows: <https://github.com/UB-Mannheim/tesseract/wiki>, con el idioma español)
+
+**1. Clonar el repositorio**
 
 ```bash
-# 1. Clonar el repositorio
 git clone https://github.com/JS-Ranker/CAPSTONE.git
 cd CAPSTONE
-
-# 2. Backend (Python)
-cd backend
-python -m venv .venv
-.venv\Scripts\activate          # en Linux/macOS: source .venv/bin/activate
-pip install -r requirements.txt
-cd ..
-
-# 3. Frontend (React)
-cd frontend
-npm install
-cd ..
-
-# 4. Base de datos y variables de entorno
-# - Ejecutar los scripts de database/ en SQL Server
-# - Crear backend/.env con la conexión a la base de datos y la ruta de Tesseract
-
-# 5. Ejecutar la aplicación
-# (los comandos de ejecución se agregarán cuando exista el código)
 ```
+
+**2. Base de datos** (autenticación de Windows; `-f 65001` es necesario para que los acentos se lean bien)
+
+```bash
+cd "Fase 2/Evidencias Proyecto/Evidencias de sistema/Base de datos"
+sqlcmd -S localhost -E -C -f 65001 -i 01_crear_base_datos.sql
+sqlcmd -S localhost -E -C -f 65001 -i 02_tablas.sql
+sqlcmd -S localhost -E -C -f 65001 -i 03_datos_iniciales.sql
+```
+
+> `02_tablas.sql` recrea las tablas desde cero: borra los datos existentes.
+
+**3. Backend (Python)**
+
+```bash
+cd "Fase 2/Evidencias Proyecto/Evidencias de sistema/Aplicación/backend"
+python -m venv .venv
+.venv\Scripts\activate             # en Linux/macOS: source .venv/bin/activate
+pip install -r requirements.txt
+copy .env.example .env             # en Linux/macOS: cp .env.example .env  (luego ajustar los valores)
+python -m pytest                   # verifica la API y la conexión a la base de datos
+uvicorn app.main:app --reload      # API en http://localhost:8000 (documentación en /docs)
+```
+
+**4. Frontend (React)**, en otra terminal
+
+```bash
+cd "Fase 2/Evidencias Proyecto/Evidencias de sistema/Aplicación/frontend"
+npm install
+npm run dev                        # aplicación en http://localhost:5173
+```
+
+La página inicial muestra el estado de la conexión con la API y con la base de datos.
 
 > **Importante:** no subir al repositorio datos reales de deudores ni credenciales. Utilizar datos de prueba o simulados y un archivo `.gitignore` adecuado.
 
