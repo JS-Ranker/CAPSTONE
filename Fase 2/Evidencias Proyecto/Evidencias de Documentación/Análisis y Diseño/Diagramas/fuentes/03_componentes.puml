@@ -5,11 +5,11 @@ title Diagrama de Componentes - TTDH Automation
 actor "Usuario\n(navegador)" as U
 
 package "Capa de Presentación" {
-  [Frontend Web / Dashboard] as FE
+  [Frontend Web / Dashboard\n(React)] as FE
 }
 
 package "Capa de Aplicación" {
-  [API Backend] as API
+  [API Backend\n(Python)] as API
   [Servicio de Autenticación\ny Roles (RBAC)] as AUTH
   [Servicio de Auditoría] as AUD
   [Módulo de Reportes\ny Exportación] as REP
@@ -18,17 +18,17 @@ package "Capa de Aplicación" {
 package "Capa de Procesamiento" {
   [Módulo de Recepción\n(Correo + Web + SFTP)] as ING
   [Módulo de Extracción\n(PDF / OCR / IA)] as EXT
-  [Motor ETL\n(Parsing + Validación RN01-RN04)] as ETL
+  [Motor OCR\n(Tesseract, local)] as OCR
+  [Motor ETL - Python / Pandas\n(Parsing + Validación RN01-RN04)] as ETL
   [Motor de Cruce\n(Matching)] as MAT
-  [Módulo de IA\n(Anomalías y sugerencias)] as IAM
+  [Módulo de IA - Scikit-Learn\n(Anomalías y sugerencias)] as IAM
 }
 
-database "BD Relacional\nTTDH" as DB
+database "BD Relacional TTDH\n(SQL Server)" as DB
 database "Repositorio de\ndocumentos originales" as REPO
 
 node "Servidor de Correo\n(casilla institucional)" as MAIL
 node "Servidor SFTP TGR" as SFTP
-node "Servicio OCR / IA\n(visión)" as OCR
 node "Core Bancario\nBanco Genérico" as CORE
 node "Active Directory / SSO" as AD
 
@@ -44,7 +44,7 @@ SFTP --> ING : archivos TGR
 ING --> REPO : guarda original
 ING --> ETL : Excel / CSV / TXT
 ING --> EXT : PDF / imágenes
-EXT --> OCR : imagen
+EXT --> OCR : imagen preprocesada
 EXT --> ETL : plantilla estándar
 ETL --> MAT
 MAT --> CORE : consulta cuentas

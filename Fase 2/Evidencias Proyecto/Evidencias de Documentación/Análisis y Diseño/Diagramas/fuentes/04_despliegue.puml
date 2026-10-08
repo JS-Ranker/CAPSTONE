@@ -8,17 +8,18 @@ node "Estación del usuario" as PC {
 
 node "Red interna Banco Genérico" as RED {
   node "Servidor de Aplicación" as APP {
-    artifact "Frontend Web" as A1
-    artifact "API Backend" as A2
+    artifact "Frontend Web\n(React)" as A1
+    artifact "API Backend\n(Python)" as A2
   }
   node "Servidor de Procesamiento" as PROC {
     artifact "Módulo de Recepción\ny Extracción" as P0
+    artifact "Motor OCR\n(Tesseract)" as P4
     artifact "Motor ETL" as P1
     artifact "Motor de Cruce" as P2
     artifact "Módulo de IA" as P3
   }
   node "Servidor de Base de Datos" as DBS {
-    database "BD Relacional\n(cifrado AES-256)" as DB
+    database "SQL Server\n(cifrado AES-256)" as DB
   }
   node "Active Directory / SSO" as AD
   node "Core Bancario" as CORE
@@ -26,12 +27,6 @@ node "Red interna Banco Genérico" as RED {
 }
 
 node "Servidor SFTP\n(intercambio TGR)" as SFTP
-node "Servicio OCR / IA\n(nube)" as OCR
-note right of OCR
-  Solo recibe imágenes de documentos.
-  En el proyecto se usan documentos
-  simulados (datos sensibles).
-end note
 
 NAV --> APP : HTTPS (TLS 1.3)
 APP --> PROC : invocación de procesos
@@ -41,5 +36,4 @@ APP --> AD : autenticación
 PROC --> CORE : consulta de cuentas
 PROC --> SFTP : SFTP
 PROC --> MAIL : IMAP / TLS
-PROC --> OCR : HTTPS (API)
 @enduml

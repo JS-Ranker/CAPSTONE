@@ -9,7 +9,7 @@ participant "API Backend" as API
 participant "Servidor de\nCorreo" as MAIL
 participant "Módulo de\nRecepción" as REC
 participant "Módulo de\nExtracción" as EXT
-participant "Servicio\nOCR / IA" as OCR
+participant "Motor OCR\n(Tesseract)" as OCR
 participant "Motor ETL" as ETL
 participant "Motor de Cruce" as MAT
 participant "Core Bancario" as CORE
@@ -33,7 +33,7 @@ opt Documento PDF o imagen (CU12)
   alt PDF con texto
     EXT -> EXT : Extraer tablas del PDF
   else PDF escaneado o fotografía
-    EXT -> OCR : Enviar imagen preprocesada
+    EXT -> OCR : Procesar imagen preprocesada
     OCR --> EXT : Campos de cada registro + confianza
   end
   EXT -> EXT : Mapear a plantilla estándar y\ncomparar con totales de control (RN05)

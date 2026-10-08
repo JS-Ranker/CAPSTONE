@@ -3,7 +3,7 @@
 > Plataforma para la automatización del procesamiento e integración de información de registros de deudores entre la **Tesorería General de la República** y **Banco Genérico**.
 
 ![Estado](https://img.shields.io/badge/estado-en%20desarrollo-yellow)
-![Fase](https://img.shields.io/badge/fase-Definici%C3%B3n%20(Fase%201)-blue)
+![Fase](https://img.shields.io/badge/fase-Desarrollo%20(Fase%202)-blue)
 ![Licencia](https://img.shields.io/badge/licencia-Acad%C3%A9mico-lightgrey)
 
 Proyecto **Capstone (APT)** de la carrera de Ingeniería en Informática — Duoc UC, Sede Padre Alonso de Ovalle.
@@ -30,7 +30,7 @@ Proyecto **Capstone (APT)** de la carrera de Ingeniería en Informática — Duo
 
 **TTDH Automation** es una plataforma informática que automatiza el procesamiento de información de registros de deudores, desde su recepción —por correo electrónico, SFTP o carga web, en Excel, CSV, PDF, documentos escaneados o fotografías— y validación hasta el cruce con las bases de datos de la organización y la generación de reportes.
 
-La solución incorpora un módulo de **extracción con OCR e IA** que convierte los PDF, escaneos y fotografías a una plantilla estándar, y un proceso **ETL** capaz de trabajar con distintos formatos de archivos, aplicar reglas de validación y de negocio, detectar cambios respecto de procesos anteriores y mantener la trazabilidad de cada ejecución. Además, permite generar reportes parametrizables e integra un componente de **Inteligencia Artificial** para apoyar la detección de anomalías y sugerir nuevas validaciones.
+La solución incorpora un módulo de **extracción con OCR local (Tesseract)** que convierte los PDF, escaneos y fotografías a una plantilla estándar, y un proceso **ETL** capaz de trabajar con distintos formatos de archivos, aplicar reglas de validación y de negocio, detectar cambios respecto de procesos anteriores y mantener la trazabilidad de cada ejecución. Además, permite generar reportes parametrizables e integra un componente de **Inteligencia Artificial** para apoyar la detección de anomalías y sugerir nuevas validaciones.
 
 ## 🎯 Problema que resuelve
 
@@ -52,7 +52,7 @@ El flujo general de la plataforma es el siguiente:
 flowchart LR
     A["📥 Tesorería General<br/>de la República<br/>(correo, SFTP o web)"] --> R["📧 Recepción de<br/>documentos"]
     R -->|"Excel / CSV / TXT"| B["⚙️ Proceso ETL"]
-    R -->|"PDF / escaneos / fotos"| X["🔎 Extracción<br/>OCR + IA"]
+    R -->|"PDF / escaneos / fotos"| X["🔎 Extracción OCR<br/>(Tesseract)"]
     X -->|"plantilla estándar"| B
     B --> C["🔍 Validaciones y<br/>reglas de negocio<br/>(RUT, duplicados, formatos)"]
     C --> D["🗄️ Cruce con BD<br/>de Banco Genérico"]
@@ -62,7 +62,7 @@ flowchart LR
 ```
 
 1. **Entrada:** la Tesorería General de la República envía periódicamente los documentos con los datos de los deudores a la casilla de correo institucional (también se aceptan SFTP y carga web), en Excel, CSV, TXT, PDF, documentos escaneados o fotografías.
-   - **Extracción (OCR/IA):** los PDF, escaneos y fotografías se convierten a una plantilla estándar; los registros con baja confianza se derivan a revisión manual.
+   - **Extracción (OCR/IA):** los PDF, escaneos y fotografías se convierten a una plantilla estándar mediante extracción de tablas y OCR local con Tesseract (sin enviar documentos a servicios externos); los registros con baja confianza se derivan a revisión manual.
 2. **Procesamiento (ETL):** la plataforma recibe los archivos y ejecuta un proceso que extrae, transforma y valida la información (RUT, duplicados, campos incompletos y formatos), aplicando las reglas de negocio definidas.
 3. **Cruce de datos:** la información validada se cruza con las bases de datos de Banco Genérico para identificar coincidencias, cambios e inconsistencias.
 4. **Trazabilidad:** se registra cada ejecución, manteniendo el historial y la comparación entre procesos.
@@ -73,7 +73,7 @@ flowchart LR
 
 - Recepción automática de documentos desde la casilla de correo institucional, SFTP o carga web.
 - Soporte para Excel, CSV, TXT, PDF, documentos escaneados y fotografías.
-- Extracción de datos con OCR e IA, con nivel de confianza por registro y revisión manual de los datos dudosos.
+- Extracción de datos con OCR local (Tesseract), con nivel de confianza por registro y revisión manual de los datos dudosos.
 - Proceso ETL configurable (extracción, transformación, validación y carga).
 - Validaciones automáticas: RUT, duplicados, campos incompletos y formatos.
 - Aplicación de reglas de negocio.
@@ -100,56 +100,68 @@ flowchart LR
 | RF09 | Gestión de Roles y Permisos (RBAC) | El sistema debe administrar usuarios con roles diferenciados (RBAC). |
 | RF10 | Módulo de Auditoría y Trazabilidad Total | El sistema debe registrar una bitácora inalterable de todas las acciones realizadas. |
 | RF11 | Exportación de Resultados y Métricas | El sistema debe exportar datasets y reportes en formatos estándar (Excel, PDF, CSV). |
-| RF12 | Extracción y Normalización de Documentos (OCR/IA) | El sistema debe extraer los datos de PDF, escaneos y fotografías mediante OCR e IA, con un nivel de confianza por registro. |
+| RF12 | Extracción y Normalización de Documentos (OCR/IA) | El sistema debe extraer los datos de PDF, escaneos y fotografías mediante extracción de tablas y OCR local (Tesseract), con un nivel de confianza por registro. |
 
 ## 🛠 Stack tecnológico
 
-> ⚠️ _Pendiente de definir según el diseño. Completar con las tecnologías que efectivamente utilice el equipo._
+> Definido en la Fase 2 (ver *Guía 2.4* y *Plan de Calidad y Costos*). Todas las herramientas son de código abierto o ediciones gratuitas.
 
-| Área | Tecnología (propuesta) |
-|------|------------------------|
-| Lenguaje / Backend | _por definir_ |
-| Base de datos | _por definir_ |
-| Proceso ETL | _por definir_ |
-| Frontend / Dashboard | _por definir_ |
-| Inteligencia Artificial | _por definir_ |
+| Área | Tecnología |
+|------|------------|
+| Lenguaje / Backend (API) | Python |
+| Base de datos | Microsoft SQL Server (Developer / Express) |
+| Proceso ETL | Python + Pandas |
+| Extracción de documentos (OCR) | Tesseract OCR, ejecutado localmente |
+| Inteligencia Artificial | Python + Scikit-Learn |
+| Frontend / Dashboard | React |
 | Control de versiones | Git / GitHub |
 
 ## 📂 Estructura del repositorio
 
-> _Estructura referencial. Ajustar según cómo se organice el código._
+> Las carpetas de código (`backend/`, `frontend/`, `database/`, `data/` y `tests/`) son referenciales y se crearán en la actividad *Configuración del entorno de desarrollo y datos simulados*.
 
 ```
 CAPSTONE/
-├── docs/               # Documentación del proyecto (guías, informes, diagramas)
-├── src/                # Código fuente de la plataforma
-│   ├── etl/            # Proceso de extracción, transformación y carga
-│   ├── validaciones/   # Reglas de negocio y validaciones
-│   ├── reportes/       # Generación de reportes
-│   ├── ia/             # Componente de análisis con IA
-│   └── dashboard/      # Interfaz de monitoreo
-├── data/               # Datos de prueba (no subir datos reales/sensibles)
-├── tests/              # Pruebas funcionales y de integración
+├── Fase 1/             # Evidencias de la Fase 1 (individuales y grupales)
+├── Fase 2/             # Evidencias de la Fase 2 (individuales, grupales y de proyecto)
+├── Fase 3/             # Evidencias de la Fase 3
+├── backend/            # Python: API, recepción, extracción OCR, ETL, validaciones, cruce e IA
+├── frontend/           # React: dashboard y pantallas de la plataforma
+├── database/           # Scripts SQL Server (creación de tablas y datos de prueba)
+├── data/               # Datos y documentos simulados (no subir datos reales/sensibles)
+├── tests/              # Pruebas unitarias, funcionales y de integración
 └── README.md
 ```
 
 ## 🚀 Instalación y ejecución
 
-> _Instrucciones referenciales. Completar cuando se defina el stack._
+> _Instrucciones referenciales según el stack definido. Se confirmarán al configurar el entorno de desarrollo._
+
+**Requisitos previos:** Python 3, Node.js, SQL Server (Developer o Express) y Tesseract OCR instalado en el equipo.
 
 ```bash
 # 1. Clonar el repositorio
 git clone https://github.com/JS-Ranker/CAPSTONE.git
 cd CAPSTONE
 
-# 2. Instalar dependencias
-# (agregar el comando según la tecnología, p. ej. npm install / pip install -r requirements.txt)
+# 2. Backend (Python)
+cd backend
+python -m venv .venv
+.venv\Scripts\activate          # en Linux/macOS: source .venv/bin/activate
+pip install -r requirements.txt
+cd ..
 
-# 3. Configurar variables de entorno
-# (crear archivo .env con la configuración de la base de datos, etc.)
+# 3. Frontend (React)
+cd frontend
+npm install
+cd ..
 
-# 4. Ejecutar la aplicación
-# (agregar el comando de ejecución)
+# 4. Base de datos y variables de entorno
+# - Ejecutar los scripts de database/ en SQL Server
+# - Crear backend/.env con la conexión a la base de datos y la ruta de Tesseract
+
+# 5. Ejecutar la aplicación
+# (los comandos de ejecución se agregarán cuando exista el código)
 ```
 
 > **Importante:** no subir al repositorio datos reales de deudores ni credenciales. Utilizar datos de prueba o simulados y un archivo `.gitignore` adecuado.
@@ -164,6 +176,8 @@ El proyecto se desarrolla con metodología **en cascada**, avanzando por etapas 
 4. Pruebas
 5. Implementación y documentación
 6. Cierre
+
+**Ajustes de la Fase 2 (Guía 2.4):** en la etapa de desarrollo los módulos se construyen en paralelo, con pruebas unitarias al cierre de cada uno e integración progresiva; se priorizó un flujo mínimo de extremo a extremo antes de las funciones avanzadas (OCR de fotografías e IA).
 
 **Duración estimada:** 18 semanas — Fase 1 (definición, 4 semanas), Fase 2 (desarrollo, 10 semanas) y Fase 3 (pruebas finales, correcciones y presentación).
 

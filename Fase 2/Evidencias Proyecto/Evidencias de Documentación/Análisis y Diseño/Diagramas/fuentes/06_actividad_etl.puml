@@ -12,7 +12,7 @@ partition "Recepción y Extracción" {
     if (¿PDF con texto?) then (sí)
       :Extraer tablas del PDF;
     else (no)
-      :OCR + IA con visión\n(PDF escaneado o fotografía);
+      :OCR con Tesseract\n(PDF escaneado o fotografía);
     endif
     :Mapear a plantilla estándar\ncon nivel de confianza;
     if (¿Confianza y totales OK? (RN05)) then (no)

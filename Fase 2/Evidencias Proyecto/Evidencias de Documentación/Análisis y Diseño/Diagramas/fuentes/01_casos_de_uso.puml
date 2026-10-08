@@ -14,7 +14,7 @@ AD -|> AN
 actor "TGR\n(Correo / SFTP)" as TGR <<sistema>>
 actor "Core Bancario\nBanco Genérico" as CORE <<sistema>>
 actor "Active Directory\n/ SSO" as SSO <<sistema>>
-actor "Servicio de\nOCR / IA" as OCR <<sistema>>
+actor "Motor OCR\n(Tesseract)" as OCR <<sistema>>
 
 rectangle "Plataforma TTDH Automation" {
   usecase "CU01 Iniciar sesión" as CU01
