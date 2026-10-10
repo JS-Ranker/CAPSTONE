@@ -20,6 +20,9 @@ pillow>=10.4                 # preprocesamiento de imágenes
 # IA - detección de anomalías (RF08)
 scikit-learn>=1.5
 
+# Datos simulados (scripts/generar_datos_simulados.py)
+fpdf2>=2.8                   # nóminas en PDF con texto
+
 # Pruebas
 pytest>=8.3
 httpx>=0.27                  # cliente de pruebas de FastAPI
