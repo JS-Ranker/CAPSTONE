@@ -22,8 +22,10 @@ import argparse
 import csv
 import json
 import random
+import re
 import shutil
 import sys
+import zipfile
 from dataclasses import dataclass, field, replace
 from datetime import date, datetime, timedelta
 from pathlib import Path
@@ -313,8 +315,23 @@ def escribir_excel(ruta: Path, nomina: Nomina) -> None:
         hoja.append(fila)
     hoja.append(nomina.pie())
     libro.properties.creator = "TTDH Automation - datos simulados"
-    libro.properties.created = libro.properties.modified = FECHA_METADATOS
+    libro.properties.created = FECHA_METADATOS
     libro.save(ruta)
+    _fijar_fechas_xlsx(ruta)
+
+
+def _fijar_fechas_xlsx(ruta: Path) -> None:
+    """openpyxl graba la hora actual al guardar (en los metadatos y en el zip). Se reemplaza por
+    una fija para que regenerar los datos no cambie los archivos."""
+    modificado = FECHA_METADATOS.strftime("%Y-%m-%dT%H:%M:%SZ").encode()
+    with zipfile.ZipFile(ruta) as original:
+        entradas = [(info.filename, original.read(info)) for info in original.infolist()]
+    with zipfile.ZipFile(ruta, "w") as nuevo:
+        for nombre, datos in entradas:
+            if nombre == "docProps/core.xml":
+                datos = re.sub(rb"(<dcterms:modified[^>]*>)[^<]*", rb"\g<1>" + modificado, datos)
+            info = zipfile.ZipInfo(nombre, date_time=FECHA_METADATOS.timetuple()[:6])
+            nuevo.writestr(info, datos, compress_type=zipfile.ZIP_DEFLATED)
 
 
 TITULOS_IMPRESOS = {
@@ -640,8 +657,11 @@ def generar(salida: Path, semilla: int = 2026, grande: int = 0) -> dict[str, obj
         registro.caso = "Monto tapado por una mancha"
     escribir_fotografia(destino, nomina, manchadas)
     archivos.append(entrada_manifiesto(
-        relativa, "Imagen", "Foto con perspectiva, sombra y desenfoque. Los 3 montos manchados deben ir a revisión; "
-        "el resto depende de la calidad real del OCR.", "Procesado", nomina))
+        relativa, "Imagen", "Foto con perspectiva, sombra y desenfoque. Los 3 montos manchados deben ir a revisión, "
+        "y ningún valor mal leído puede aceptarse sin revisión; el resto depende de la calidad real del OCR.",
+        "Error de Extracción", nomina,
+        motivo="CU12 5b - Los montos manchados no se pueden leer, así que el detalle no cuadra con los totales: "
+               "el documento va a revisión manual con los registros dudosos marcados"))
     para_cruce += [r for r in nomina.registros if r.estado == VALIDO]
 
     if grande:

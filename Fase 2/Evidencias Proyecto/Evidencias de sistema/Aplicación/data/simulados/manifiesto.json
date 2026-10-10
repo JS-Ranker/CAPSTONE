@@ -8188,8 +8188,9 @@
     {
       "archivo": "no_estructurados/24_foto_nomina.jpg",
       "tipo_documento": "Imagen",
-      "proposito": "Foto con perspectiva, sombra y desenfoque. Los 3 montos manchados deben ir a revisión; el resto depende de la calidad real del OCR.",
-      "estado_archivo_esperado": "Procesado",
+      "proposito": "Foto con perspectiva, sombra y desenfoque. Los 3 montos manchados deben ir a revisión, y ningún valor mal leído puede aceptarse sin revisión; el resto depende de la calidad real del OCR.",
+      "estado_archivo_esperado": "Error de Extracción",
+      "motivo": "CU12 5b - Los montos manchados no se pueden leer, así que el detalle no cuadra con los totales: el documento va a revisión manual con los registros dudosos marcados",
       "lote": "LOTE-20261001-14",
       "cantidad_declarada": 25,
       "suma_declarada": 44232853,

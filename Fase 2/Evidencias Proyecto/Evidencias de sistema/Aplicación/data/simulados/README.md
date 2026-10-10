@@ -40,7 +40,7 @@ Todos los formatos tienen la misma estructura (RF02, RN04):
 | `no_estructurados/21_nomina_pdf_texto.pdf` | PDF con tabla seleccionable | Procesado, 25 válidos |
 | `no_estructurados/22_…_totales_no_cuadran.pdf` | Total impreso incorrecto | Revisión manual (CU12 5b) |
 | `no_estructurados/23_nomina_escaneada.pdf` | Escaneo de buena calidad (solo imagen) | Procesado, 25 válidos |
-| `no_estructurados/24_foto_nomina.jpg` | Foto con perspectiva, sombra y 3 montos manchados | 3 a "Revisión de Extracción" |
+| `no_estructurados/24_foto_nomina.jpg` | Foto con perspectiva, sombra y 3 montos manchados | 3 a "Revisión de Extracción"; como los totales no cuadran, el documento va a revisión manual (CU12 5b) |
 | `banco_generico/cuentas_core_bancario.csv` | Cuentas de Banco Genérico para el cruce (RF04) | 13 casos que no calzan: cuenta cerrada, inexistente o de otro RUT |
 
 **`manifiesto.json`** tiene, para cada archivo y cada registro, los valores normalizados y el resultado esperado. Las pruebas de cada módulo deberían compararse contra él en lugar de repetir los valores a mano.

@@ -16,6 +16,7 @@ openpyxl>=3.1                # lectura de Excel
 pdfplumber>=0.11             # tablas de PDF con texto
 pytesseract>=0.3.10          # OCR local (requiere Tesseract instalado)
 pillow>=10.4                 # preprocesamiento de imágenes
+opencv-python-headless>=4.10 # detección de la grilla y corrección de perspectiva en fotos
 
 # IA - detección de anomalías (RF08)
 scikit-learn>=1.5

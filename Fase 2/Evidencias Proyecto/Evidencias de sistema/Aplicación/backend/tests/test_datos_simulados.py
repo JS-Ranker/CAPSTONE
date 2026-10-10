@@ -162,7 +162,8 @@ def test_cruce_banco_generico(salida, manifiesto):
 
 def test_misma_semilla_produce_los_mismos_datos(salida, tmp_path):
     generar(tmp_path, semilla=2026)
-    for nombre in ("manifiesto.json", "estructurados/02_nomina_valida.csv", "banco_generico/cuentas_core_bancario.csv"):
+    for nombre in ("manifiesto.json", "estructurados/02_nomina_valida.csv", "estructurados/01_nomina_valida.xlsx",
+                   "banco_generico/cuentas_core_bancario.csv"):
         assert (tmp_path / nombre).read_bytes() == (salida / nombre).read_bytes(), nombre
 
 
