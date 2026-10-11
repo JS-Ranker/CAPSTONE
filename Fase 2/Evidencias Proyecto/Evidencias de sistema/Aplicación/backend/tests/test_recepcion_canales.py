@@ -268,8 +268,8 @@ def test_api_rechaza_tipos_no_permitidos_vacios_y_grandes(cliente, monkeypatch):
     assert cliente.post("/api/recepcion/archivos", files={"archivo": ("nomina.csv", b"x")}).status_code == 413
 
 
-def test_api_leer_correo_ahora(cliente, monkeypatch):
-    monkeypatch.setattr(api, "settings", replace(api.settings, remitentes_autorizados=AUTORIZADOS))
+def test_api_leer_correo_ahora(cliente):
+    assert cliente.post("/api/recepcion/remitentes", json={"correo": "nominas@tgr.cl"}).status_code == 201
     cliente.buzon.correos["1"] = correo("nominas@tgr.cl", "Nómina", "02_nomina_valida.csv", "21_nomina_pdf_texto.pdf")
 
     respuesta = cliente.post("/api/recepcion/revisar/correo")
@@ -303,6 +303,41 @@ def test_api_leer_correo_sin_configuracion_responde_409(cliente, monkeypatch):
 
     assert respuesta.status_code == 409
     assert cliente.get("/api/recepcion/estado").json()["correo"]["configurado"] is False
+
+
+def test_api_leer_correo_sin_remitentes_responde_409(cliente):
+    respuesta = cliente.post("/api/recepcion/revisar/correo")
+
+    assert respuesta.status_code == 409 and "remitentes" in respuesta.json()["detail"].lower()
+    assert cliente.get("/api/recepcion/estado").json()["correo"]["remitentes_autorizados"] == 0
+
+
+def test_api_administra_los_remitentes_autorizados(cliente, conexion):
+    creado = cliente.post("/api/recepcion/remitentes", json={"correo": " TGR <Nominas@TGR.cl> ", "nombre": "TGR"})
+    assert creado.status_code == 201, creado.json()
+    assert (creado.json()["correo"], creado.json()["nombre"]) == ("nominas@tgr.cl", "TGR")
+    assert ultima_bitacora(conexion)[0] == "Remitente autorizado agregado"
+
+    repetido = cliente.post("/api/recepcion/remitentes", json={"correo": "nominas@tgr.cl"})
+    assert repetido.status_code == 200 and repetido.json()["id_remitente"] == creado.json()["id_remitente"]
+    assert [r["correo"] for r in cliente.get("/api/recepcion/remitentes").json()] == ["nominas@tgr.cl"]
+
+    id_remitente = creado.json()["id_remitente"]
+    assert cliente.delete(f"/api/recepcion/remitentes/{id_remitente}").status_code == 204
+    assert ultima_bitacora(conexion)[0] == "Remitente autorizado quitado"
+    assert cliente.get("/api/recepcion/remitentes").json() == []
+    assert cliente.delete(f"/api/recepcion/remitentes/{id_remitente}").status_code == 404
+
+    reactivado = cliente.post("/api/recepcion/remitentes", json={"correo": "nominas@tgr.cl"})
+    assert reactivado.status_code == 201 and reactivado.json()["id_remitente"] == id_remitente
+    assert reactivado.json()["nombre"] == "TGR"  # conserva el nombre anterior
+
+
+@pytest.mark.parametrize("correo", ["", "nominas", "nominas@tgr", "dos @tgr.cl", "a@b@tgr.cl"])
+def test_api_rechaza_remitentes_con_formato_invalido(cliente, correo):
+    respuesta = cliente.post("/api/recepcion/remitentes", json={"correo": correo})
+    assert respuesta.status_code == 400
+    assert cliente.get("/api/recepcion/remitentes").json() == []
 
 
 def test_api_responde_404_y_valida_la_paginacion(cliente):

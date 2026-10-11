@@ -15,10 +15,6 @@ def _ruta(variable: str, por_defecto: str) -> Path:
     return ruta if ruta.is_absolute() else (BACKEND_DIR / ruta).resolve()
 
 
-def _lista(variable: str) -> tuple[str, ...]:
-    return tuple(valor.strip().lower() for valor in os.getenv(variable, "").split(",") if valor.strip())
-
-
 @dataclass(frozen=True)
 class Settings:
     db_server: str = os.getenv("DB_SERVER", "localhost")
@@ -39,7 +35,7 @@ class Settings:
     imap_usuario: str = os.getenv("IMAP_USUARIO", "")
     imap_password: str = os.getenv("IMAP_PASSWORD", "")
     imap_carpeta: str = os.getenv("IMAP_CARPETA", "INBOX")
-    remitentes_autorizados: tuple[str, ...] = _lista("REMITENTES_AUTORIZADOS")
+    # Los remitentes autorizados se administran desde la pantalla (tabla Remitentes_Autorizados).
 
 
 settings = Settings()

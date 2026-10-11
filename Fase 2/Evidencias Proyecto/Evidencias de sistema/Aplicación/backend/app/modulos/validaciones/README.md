@@ -110,7 +110,7 @@ La tabla `Registros_TGR` (en `Base de datos/02_tablas.sql`) **no alcanza** para 
 | `motivo_validacion` | Para saber **por qué** un registro es inválido (la Bandeja de Excepciones, RF05, lo necesita) |
 | Estado "Datos Faltantes" | RN03 y CU03 5c lo piden; hoy el CHECK solo permite Válido, Inválido, Duplicado y Revisión de Extracción |
 
-**Sugerencia:** un script `05_validaciones.sql` que agregue estas columnas sin borrar datos, igual que `04_recepcion.sql`.
+**Sugerencia:** un script `06_validaciones.sql` que agregue estas columnas sin borrar datos, igual que `04_recepcion.sql`.
 
 ## Cómo probarlo: los resultados correctos ya existen
 

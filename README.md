@@ -155,6 +155,8 @@ Cada paquete de `backend/app/modulos/` indica en su `__init__.py` qué requerimi
 
 ## 🚀 Instalación y ejecución
 
+> 🪟 **¿Primera vez en Windows?** Sigue la guía paso a paso [INSTALACION.md](INSTALACION.md): qué instalar, cómo configurar el `.env` y solución de los problemas más comunes. Esta sección es el resumen.
+
 **Requisitos previos:**
 
 - Python 3.12 o superior
@@ -177,9 +179,12 @@ sqlcmd -S localhost -E -C -f 65001 -i 01_crear_base_datos.sql
 sqlcmd -S localhost -E -C -f 65001 -i 02_tablas.sql
 sqlcmd -S localhost -E -C -f 65001 -i 03_datos_iniciales.sql
 sqlcmd -S localhost -E -C -f 65001 -i 04_recepcion.sql
+sqlcmd -S localhost -E -C -f 65001 -i 05_remitentes.sql
 ```
 
-> `02_tablas.sql` recrea las tablas desde cero: borra los datos existentes. Después de ejecutarlo hay que volver a ejecutar `03` y `04`. `04_recepcion.sql` agrega a `Archivos_TGR` los datos del correo y la huella del archivo; no borra datos y se puede ejecutar más de una vez.
+> Con SQL Server Express el servidor suele ser `localhost\SQLEXPRESS` en lugar de `localhost` (aquí y en `DB_SERVER` del `.env`).
+>
+> `02_tablas.sql` recrea las tablas desde cero: borra los datos existentes. Después de ejecutarlo hay que volver a ejecutar `03`, `04` y `05`. `04_recepcion.sql` agrega a `Archivos_TGR` los datos del correo y la huella del archivo, y `05_remitentes.sql` crea la tabla de remitentes autorizados; ninguno de los dos borra datos y se pueden ejecutar más de una vez.
 
 **3. Backend (Python)**
 
@@ -214,7 +219,7 @@ La página inicial es la **Gestión de Ingesta** (mockup `v1_ingesta`): carga de
   python -m scripts.revisar_canales             # correo, directorio SFTP y extracción de PDF/imágenes
   ```
 
-  La casilla de correo, los remitentes autorizados y el directorio SFTP se configuran en `backend/.env` (ver `.env.example`). Los originales se guardan en `Aplicación/data/entrada/`, que está excluida del repositorio.
+  La casilla de correo y el directorio SFTP se configuran en `backend/.env` (ver `.env.example`); los remitentes autorizados se administran desde la pantalla de ingesta (botón "Remitentes autorizados"). Los originales se guardan en `Aplicación/data/entrada/`, que está excluida del repositorio.
 
 > **Importante:** no subir al repositorio datos reales de deudores ni credenciales. Utilizar datos de prueba o simulados y un archivo `.gitignore` adecuado.
 

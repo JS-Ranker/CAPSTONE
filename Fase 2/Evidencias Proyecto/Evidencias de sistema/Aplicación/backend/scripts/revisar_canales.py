@@ -22,6 +22,7 @@ from app.config import settings
 from app.db import engine
 from app.modulos.recepcion import conectar_imap, procesar_pendientes, revisar_buzon, revisar_directorio
 from app.modulos.recepcion.pendientes import documentos_pendientes
+from app.modulos.recepcion.remitentes import correos_autorizados
 from app.modulos.recepcion.sftp import archivos_listos
 
 CANALES = ("correo", "sftp", "extraccion")
@@ -86,7 +87,7 @@ def revisar(canales: list[str], antiguedad_minima: float, limite: int) -> int:
                     with conectar_imap(settings.imap_servidor, settings.imap_puerto, settings.imap_usuario,
                                        settings.imap_password, settings.imap_carpeta) as buzon:
                         resumen = revisar_buzon(conexion, buzon, almacen=settings.almacen_documentos,
-                                                remitentes_autorizados=settings.remitentes_autorizados,
+                                                remitentes_autorizados=correos_autorizados(conexion),
                                                 tamano_maximo=maximo)
                     fallas += resumen.fallidos
                     imprimir("Correo", resumen)

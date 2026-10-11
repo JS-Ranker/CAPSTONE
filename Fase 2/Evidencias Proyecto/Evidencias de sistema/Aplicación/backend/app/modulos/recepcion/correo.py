@@ -88,7 +88,7 @@ def revisar_buzon(
 ) -> ResumenCanal:
     """Registra los adjuntos de los correos no leídos de remitentes autorizados."""
     if not remitentes_autorizados:
-        raise ValueError("No hay remitentes autorizados (REMITENTES_AUTORIZADOS en backend/.env)")
+        raise ValueError("No hay remitentes autorizados: agréguelos en la pantalla de ingesta")
     autorizados = {remitente.lower() for remitente in remitentes_autorizados}
     resumen = ResumenCanal()
 

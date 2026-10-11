@@ -24,9 +24,12 @@ def conexion():
         columnas = conexion.execute(text("SELECT COL_LENGTH('dbo.Archivos_TGR', 'hash_sha256')")).scalar_one()
         if columnas is None:
             pytest.skip("Falta ejecutar 'Base de datos/04_recepcion.sql'")
-        # Cada prueba parte sin archivos, aunque la base de desarrollo ya tenga datos (si no, los simulados
-        # se rechazarían como duplicados). El borrado ocurre dentro de la transacción y se revierte al final.
-        for tabla in ("Analisis_IA_Anomalias", "Conciliacion_Banco", "Registros_TGR", "Archivos_TGR"):
+        if conexion.execute(text("SELECT OBJECT_ID('dbo.Remitentes_Autorizados', 'U')")).scalar_one() is None:
+            pytest.skip("Falta ejecutar 'Base de datos/05_remitentes.sql'")
+        # Cada prueba parte sin archivos ni remitentes, aunque la base de desarrollo ya tenga datos (si no, los
+        # simulados se rechazarían como duplicados). El borrado ocurre dentro de la transacción y se revierte.
+        for tabla in ("Analisis_IA_Anomalias", "Conciliacion_Banco", "Registros_TGR", "Archivos_TGR",
+                      "Remitentes_Autorizados"):
             conexion.execute(text(f"DELETE FROM dbo.{tabla}"))
         yield conexion
     finally:

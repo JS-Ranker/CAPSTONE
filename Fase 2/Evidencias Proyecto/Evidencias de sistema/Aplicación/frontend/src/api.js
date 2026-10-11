@@ -40,3 +40,11 @@ export function subirDocumento(archivo) {
 
 export const revisarCorreo = () => pedir('/api/recepcion/revisar/correo', { method: 'POST' })
 export const revisarSftp = () => pedir('/api/recepcion/revisar/sftp', { method: 'POST' })
+
+export const listarRemitentes = () => pedir('/api/recepcion/remitentes')
+export const agregarRemitente = (correo, nombre) => pedir('/api/recepcion/remitentes', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ correo, nombre }),
+})
+export const quitarRemitente = (id) => pedir(`/api/recepcion/remitentes/${id}`, { method: 'DELETE' })

@@ -6,9 +6,11 @@ exigir el rol Analista o Administrador y registrar en la bitácora al usuario qu
 import imaplib
 from collections.abc import Callable, Iterator
 from contextlib import AbstractContextManager
+from dataclasses import asdict
 from pathlib import Path
 
-from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, Query, UploadFile, status
+from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, Query, Response, UploadFile, status
+from pydantic import BaseModel, Field
 from sqlalchemy import Connection, text
 
 from ...config import settings
@@ -17,6 +19,10 @@ from .correo import REVISION_CORREO, Buzon, conectar_imap, revisar_buzon
 from .pendientes import buscar_pendiente, extraer_pendiente, procesar_pendientes
 from .registro import (
     CORREO, PENDIENTE_EXTRACCION, SFTP, WEB, MotivoRechazo, ResumenCanal, recibir_documento, resumen_para_bitacora,
+)
+from .remitentes import (
+    LARGO_MAXIMO_CORREO, LARGO_MAXIMO_NOMBRE, RemitenteInvalido, agregar_remitente, correos_autorizados,
+    listar_remitentes, quitar_remitente,
 )
 from .sftp import REVISION_SFTP, revisar_directorio
 
@@ -67,14 +73,14 @@ def obtener_procesador_pendientes() -> Callable[[], None]:
 
 
 def correo_configurado() -> bool:
-    return bool(settings.imap_servidor and settings.imap_usuario and settings.remitentes_autorizados)
+    return bool(settings.imap_servidor and settings.imap_usuario)
 
 
 def obtener_buzon() -> Callable[[], AbstractContextManager[Buzon]]:
     """Fábrica de la conexión a la casilla (las pruebas la reemplazan por un buzón en memoria)."""
     if not correo_configurado():
         raise HTTPException(status_code=status.HTTP_409_CONFLICT,
-                            detail="La casilla de correo no está configurada (IMAP_* y REMITENTES_AUTORIZADOS en .env).")
+                            detail="La casilla de correo no está configurada (IMAP_* en backend/.env).")
     return lambda: conectar_imap(settings.imap_servidor, settings.imap_puerto, settings.imap_usuario,
                                  settings.imap_password, settings.imap_carpeta)
 
@@ -170,7 +176,8 @@ def estado_recepcion(
         ).scalar_one()
     return {
         "correo": {"configurado": correo_configurado(), "ultima_revision": ultimas.get(REVISION_CORREO),
-                   "recibidos_hoy": hoy.get(CORREO, 0)},
+                   "recibidos_hoy": hoy.get(CORREO, 0),
+                   "remitentes_autorizados": len(correos_autorizados(conexion))},
         "sftp": {"configurado": directorio_sftp.is_dir(), "ultima_revision": ultimas.get(REVISION_SFTP),
                  "recibidos_hoy": hoy.get(SFTP, 0)},
         "web": {"recibidos_hoy": hoy.get(WEB, 0)},
@@ -193,9 +200,13 @@ def revisar_correo_ahora(
     procesador: Callable[[], None] = Depends(obtener_procesador_pendientes),
 ):
     """Lee la casilla de correo en el momento, sin esperar la revisión programada ("Leer correo ahora")."""
+    autorizados = correos_autorizados(conexion)
+    if not autorizados:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT,
+                            detail="No hay remitentes autorizados: agréguelos en «Remitentes autorizados».")
     try:
         with abrir_buzon() as buzon:
-            resumen = revisar_buzon(conexion, buzon, remitentes_autorizados=settings.remitentes_autorizados,
+            resumen = revisar_buzon(conexion, buzon, remitentes_autorizados=autorizados,
                                     almacen=almacen, tamano_maximo=settings.tamano_maximo_mb * 1024 * 1024)
     except (imaplib.IMAP4.error, OSError, RuntimeError) as exc:
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY,
@@ -217,3 +228,37 @@ def revisar_sftp_ahora(
     resumen = revisar_directorio(conexion, directorio, almacen=almacen, antiguedad_minima=ANTIGUEDAD_MINIMA_MANUAL,
                                  tamano_maximo=settings.tamano_maximo_mb * 1024 * 1024)
     return _respuesta_revision(resumen, tareas, procesador)
+
+
+# --- Remitentes autorizados de la casilla (CU02 2a) ---
+class NuevoRemitente(BaseModel):
+    correo: str = Field(..., max_length=LARGO_MAXIMO_CORREO + 100)  # admite "Nombre <correo>"
+    nombre: str | None = Field(None, max_length=LARGO_MAXIMO_NOMBRE)
+
+
+@router.get("/remitentes")
+def listar_remitentes_autorizados(conexion: Connection = Depends(obtener_conexion)):
+    return [asdict(remitente) for remitente in listar_remitentes(conexion)]
+
+
+@router.post("/remitentes", status_code=status.HTTP_201_CREATED)
+def agregar_remitente_autorizado(
+    datos: NuevoRemitente,
+    respuesta: Response,
+    conexion: Connection = Depends(obtener_conexion),
+):
+    """Agrega un remitente (201). Si ya estaba autorizado responde 200 con el existente."""
+    try:
+        remitente, nuevo = agregar_remitente(conexion, datos.correo, datos.nombre)
+    except RemitenteInvalido as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    if not nuevo:
+        respuesta.status_code = status.HTTP_200_OK
+    return asdict(remitente)
+
+
+@router.delete("/remitentes/{id_remitente}", status_code=status.HTTP_204_NO_CONTENT)
+def quitar_remitente_autorizado(id_remitente: int, conexion: Connection = Depends(obtener_conexion)):
+    """Quita (desactiva) un remitente; los correos que envíe desde ahora se ignoran."""
+    if not quitar_remitente(conexion, id_remitente):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Remitente no encontrado")
