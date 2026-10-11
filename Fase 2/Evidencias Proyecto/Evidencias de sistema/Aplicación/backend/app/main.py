@@ -10,8 +10,10 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from .config import settings
 from .db import engine
+from .modulos.recepcion.api import router as recepcion_router
 
 app = FastAPI(title="TTDH Automation API", version="0.1.0")
+app.include_router(recepcion_router)
 
 app.add_middleware(
     CORSMiddleware,

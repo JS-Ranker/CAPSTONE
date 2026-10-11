@@ -176,9 +176,10 @@ cd "Fase 2/Evidencias Proyecto/Evidencias de sistema/Base de datos"
 sqlcmd -S localhost -E -C -f 65001 -i 01_crear_base_datos.sql
 sqlcmd -S localhost -E -C -f 65001 -i 02_tablas.sql
 sqlcmd -S localhost -E -C -f 65001 -i 03_datos_iniciales.sql
+sqlcmd -S localhost -E -C -f 65001 -i 04_recepcion.sql
 ```
 
-> `02_tablas.sql` recrea las tablas desde cero: borra los datos existentes.
+> `02_tablas.sql` recrea las tablas desde cero: borra los datos existentes. Después de ejecutarlo hay que volver a ejecutar `03` y `04`. `04_recepcion.sql` agrega a `Archivos_TGR` los datos del correo y la huella del archivo; no borra datos y se puede ejecutar más de una vez.
 
 **3. Backend (Python)**
 
@@ -200,7 +201,20 @@ npm install
 npm run dev                        # aplicación en http://localhost:5173
 ```
 
-La página inicial muestra el estado de la conexión con la API y con la base de datos.
+La página inicial es la **Gestión de Ingesta** (mockup `v1_ingesta`): carga de documentos, estado de la recepción automática (botones "Leer correo ahora" y "Forzar lectura SFTP") y la tabla de lotes recientes. Al pie del menú se muestra el estado de la conexión con la API y con la base de datos.
+
+**5. Recepción de documentos (RF01)**
+
+- **Carga web:** `POST /api/recepcion/archivos` (campo `archivo`). Los lotes recientes están en `GET /api/recepcion/archivos`. Se pueden probar desde `http://localhost:8000/docs`.
+- **Correo y SFTP:** se revisan con un script, pensado para el Programador de tareas de Windows (por ejemplo, cada 5 minutos):
+
+  ```bash
+  cd "Fase 2/Evidencias Proyecto/Evidencias de sistema/Aplicación/backend"
+  python -m scripts.revisar_canales --simular   # muestra lo que haría, sin registrar nada
+  python -m scripts.revisar_canales             # correo, directorio SFTP y extracción de PDF/imágenes
+  ```
+
+  La casilla de correo, los remitentes autorizados y el directorio SFTP se configuran en `backend/.env` (ver `.env.example`). Los originales se guardan en `Aplicación/data/entrada/`, que está excluida del repositorio.
 
 > **Importante:** no subir al repositorio datos reales de deudores ni credenciales. Utilizar datos de prueba o simulados y un archivo `.gitignore` adecuado.
 
