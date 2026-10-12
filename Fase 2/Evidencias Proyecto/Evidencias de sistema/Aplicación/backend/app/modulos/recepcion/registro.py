@@ -19,6 +19,7 @@ from sqlalchemy.exc import IntegrityError
 
 from ... import bitacora
 from ...db import transaccion
+from ..etl.carga import es_csv_tgr
 from ..extraccion.pdf_texto import tiene_texto
 
 CORREO, SFTP, WEB = "Correo", "SFTP", "Web"  # canal_origen de Archivos_TGR
@@ -26,10 +27,10 @@ RECIBIDO, PENDIENTE_EXTRACCION = "Recibido", "Pendiente de Extracción"  # estad
 
 # CU02 paso 3: tipos permitidos. Los PDF se clasifican al leerlos (con texto o escaneado).
 TIPOS_POR_EXTENSION = {
-    ".xlsx": "Excel", ".xls": "Excel", ".csv": "CSV", ".txt": "TXT",
+    ".xlsx": "Excel", ".xls": "Excel", ".csv": "CSV", ".txt": "TXT", ".docx": "Word",
     ".pdf": "PDF", ".jpg": "Imagen", ".jpeg": "Imagen", ".png": "Imagen",
 }
-NO_ESTRUCTURADOS = {"PDF con texto", "PDF escaneado", "Imagen"}  # pasan por la extracción (CU12)
+NO_ESTRUCTURADOS = {"PDF con texto", "PDF escaneado", "Imagen"}  # se leen con OCR o tablas de PDF (CU12)
 
 _CARACTERES_NO_VALIDOS = re.compile(r'[<>:"/\\|?*\x00-\x1f]')
 _LARGO_MAXIMO_NOMBRE = 150
@@ -151,7 +152,9 @@ def recibir_documento(
         destino = almacen / ruta_relativa
         creado = _guardar(destino, contenido)
         tipo = tipo_documento(destino)
-        estado = PENDIENTE_EXTRACCION if tipo in NO_ESTRUCTURADOS else RECIBIDO
+        # Todo informe de deudores pasa por la extracción. El CSV resultado_tgr ya viene procesado:
+        # queda "Recibido" y va directo al ETL (carga web) o con "Procesar" (correo y SFTP).
+        estado = RECIBIDO if tipo == "CSV" and es_csv_tgr(destino) else PENDIENTE_EXTRACCION
         try:
             # Punto de guardado: si otra carga del mismo archivo se registra a la vez, el índice único
             # UX_Archivos_hash rechaza esta y la transacción del llamador sigue siendo válida.

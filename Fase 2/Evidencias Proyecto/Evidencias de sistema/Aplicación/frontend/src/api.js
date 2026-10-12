@@ -48,3 +48,11 @@ export const agregarRemitente = (correo, nombre) => pedir('/api/recepcion/remite
   body: JSON.stringify({ correo, nombre }),
 })
 export const quitarRemitente = (id) => pedir(`/api/recepcion/remitentes/${id}`, { method: 'DELETE' })
+
+export const procesarArchivo = (idArchivo) => pedir(`/api/etl/archivos/${idArchivo}`, { method: 'POST' })
+
+// Bandeja de Excepciones (CU05). tipo: 'caso' | 'rechazo'.
+export const revisarExcepcion = (tipo, id, { accion, observacion, datos }) => pedir(
+  `/api/excepciones/${tipo}/${id}/revisiones`,
+  { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ accion, observacion, datos }) },
+)

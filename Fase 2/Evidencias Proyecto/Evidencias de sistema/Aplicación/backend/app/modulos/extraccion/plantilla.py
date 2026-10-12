@@ -1,17 +1,18 @@
-"""Plantilla estándar de carga y resultado de la extracción (RF12, RN05, CU12).
+"""Columnas del informe de deudores de la TGR y resultado de la extracción (RF12, RN05, CU12).
 
-La plantilla es la interfaz con el ETL: encabezado, fila de columnas, detalle y pie de totales.
-Es la propuesta v1 descrita en data/simulados/README.md.
+El informe trae un deudor por fila con estas columnas (las que, según el equipo, vienen de la TGR en el
+CSV de Tomás). Lo que se extrae pasa al ETL de casos (app/modulos/etl/desde_informe.py).
 """
 import csv
 from dataclasses import dataclass, field
 from pathlib import Path
 
 COLUMNAS_PLANTILLA = (
-    "id_transaccion", "rut_deudor", "nombre_deudor", "folio_deuda", "monto",
-    "fecha_origen", "cuenta_destino", "codigo_banco", "tipo_movimiento",
+    "rut", "nombre", "id_demanda", "n_resolucion", "monto_solicitado",
+    "tipo_embargo", "expediente", "tesoreria", "fecha_oficio",
 )
-CAMPOS_CRITICOS = ("rut_deudor", "monto", "cuenta_destino")  # RN05
+# RN05: sin estos datos no se puede identificar al deudor ni calcular el descuento.
+CAMPOS_CRITICOS = ("rut", "monto_solicitado", "expediente")
 UMBRAL_CONFIANZA = 90.0  # RN05: confianza mínima en los campos críticos
 
 NORMALIZADO, ERROR_EXTRACCION = "Normalizado", "Error de Extracción"  # estados de Archivos_TGR
@@ -56,7 +57,7 @@ class ResultadoExtraccion:
 
     @property
     def suma_extraida(self) -> int:
-        montos = (r.valores["monto"] for r in self.registros)
+        montos = (r.valores["monto_solicitado"] for r in self.registros)
         return sum(int(monto) for monto in montos if monto.isdigit())
 
     def verificar_totales(self) -> None:

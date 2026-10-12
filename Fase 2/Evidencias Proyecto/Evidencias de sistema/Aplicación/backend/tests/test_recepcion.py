@@ -34,7 +34,7 @@ def contar_archivos(conexion):
 
 
 @pytest.mark.parametrize("nombre, esperado", [
-    ("01_nomina_valida.xlsx", "01_nomina_valida.xlsx"),
+    ("01_informe_valido.xlsx", "01_informe_valido.xlsx"),
     ("../../etc/passwd.csv", "passwd.csv"),
     ("C:\\Users\\tgr\\nómina 01.xlsx", "nómina 01.xlsx"),
     ('nómina<>:"|?*.csv', "nómina_______.csv"),
@@ -46,25 +46,25 @@ def test_nombre_seguro(nombre, esperado):
 
 
 def test_registra_un_excel_valido(conexion, almacen):
-    resultado = recibir(conexion, almacen, "01_nomina_valida.xlsx")
+    resultado = recibir(conexion, almacen, "01_informe_valido.xlsx")
 
     assert resultado.aceptado
     documento = resultado.documento
-    assert (documento.tipo_documento, documento.estado_archivo, documento.canal_origen) == ("Excel", "Recibido", "Web")
+    assert (documento.tipo_documento, documento.estado_archivo, documento.canal_origen) == ("Excel", "Pendiente de Extracción", "Web")
     registro = fila(conexion, documento.id_archivo)
     assert registro["hash_sha256"] == documento.hash_sha256
     assert registro["remitente"] is None and registro["asunto_correo"] is None
     original = almacen / documento.ruta_original
-    assert original.read_bytes() == simulado("01_nomina_valida.xlsx").read_bytes()
+    assert original.read_bytes() == simulado("01_informe_valido.xlsx").read_bytes()
     assert ultima_bitacora(conexion)[0] == "Recepción de documento"
 
 
 def test_rechaza_un_reenvio_con_otro_nombre(conexion, almacen):
     """12 es copia exacta de 01 (RN02, CU02 4a): no se registra aunque llegue por otro canal."""
-    primero = recibir(conexion, almacen, "01_nomina_valida.xlsx")
+    primero = recibir(conexion, almacen, "01_informe_valido.xlsx")
     antes = contar_archivos(conexion)
 
-    reenvio = recibir(conexion, almacen, "12_nomina_valida_reenvio.xlsx", canal=SFTP)
+    reenvio = recibir(conexion, almacen, "12_informe_valido_reenvio.xlsx", canal=SFTP)
 
     assert not reenvio.aceptado
     assert reenvio.motivo is MotivoRechazo.DUPLICADO
@@ -75,12 +75,14 @@ def test_rechaza_un_reenvio_con_otro_nombre(conexion, almacen):
 
 
 @pytest.mark.parametrize("nombre, tipo, estado", [
-    ("02_nomina_valida.csv", "CSV", "Recibido"),
-    ("03_nomina_latin1.txt", "TXT", "Recibido"),
-    ("10_nomina_corrupta.xlsx", "Excel", "Recibido"),  # el archivo corrupto lo rechaza la validación (CU03, RN04)
-    ("21_nomina_pdf_texto.pdf", "PDF con texto", "Pendiente de Extracción"),
-    ("23_nomina_escaneada.pdf", "PDF escaneado", "Pendiente de Extracción"),
-    ("24_foto_nomina.jpg", "Imagen", "Pendiente de Extracción"),
+    # Todo informe de deudores pasa por la extracción, también los estructurados (sin OCR).
+    ("02_informe_valido.csv", "CSV", "Pendiente de Extracción"),
+    ("03_informe_latin1.txt", "TXT", "Pendiente de Extracción"),
+    ("10_informe_corrupto.xlsx", "Excel", "Pendiente de Extracción"),  # el archivo dañado lo detecta la extracción (RN04)
+    ("13_informe_valido.docx", "Word", "Pendiente de Extracción"),
+    ("21_informe_pdf_texto.pdf", "PDF con texto", "Pendiente de Extracción"),
+    ("23_informe_escaneado.pdf", "PDF escaneado", "Pendiente de Extracción"),
+    ("24_foto_informe.jpg", "Imagen", "Pendiente de Extracción"),
 ])
 def test_clasifica_el_tipo_de_documento(conexion, almacen, nombre, tipo, estado):
     documento = recibir(conexion, almacen, nombre).documento
@@ -94,7 +96,7 @@ def test_un_pdf_danado_queda_como_escaneado_para_la_extraccion(conexion, almacen
 
 
 @pytest.mark.parametrize("nombre, contenido, tamano_maximo, motivo", [
-    ("nomina.docx", b"contenido", MB, MotivoRechazo.TIPO_NO_PERMITIDO),
+    ("informe.odt", b"contenido", MB, MotivoRechazo.TIPO_NO_PERMITIDO),
     ("programa.exe", b"MZ", MB, MotivoRechazo.TIPO_NO_PERMITIDO),
     ("sin_extension", b"contenido", MB, MotivoRechazo.TIPO_NO_PERMITIDO),
     ("vacia.csv", b"", MB, MotivoRechazo.VACIO),
@@ -115,7 +117,7 @@ def test_guarda_los_datos_del_correo(conexion, almacen):
     from datetime import datetime
     correo = DatosCorreo("nominas@tgr.cl", "Nómina octubre", datetime(2026, 10, 1, 9, 30))
 
-    documento = recibir(conexion, almacen, "02_nomina_valida.csv", canal=CORREO, correo=correo).documento
+    documento = recibir(conexion, almacen, "02_informe_valido.csv", canal=CORREO, correo=correo).documento
 
     registro = fila(conexion, documento.id_archivo)
     assert (registro["remitente"], registro["asunto_correo"]) == ("nominas@tgr.cl", "Nómina octubre")
@@ -124,6 +126,6 @@ def test_guarda_los_datos_del_correo(conexion, almacen):
 
 def test_los_datos_del_correo_son_solo_del_canal_correo(conexion, almacen):
     with pytest.raises(ValueError):
-        recibir(conexion, almacen, "02_nomina_valida.csv", canal=WEB, correo=DatosCorreo("a@b.cl", None, None))
+        recibir(conexion, almacen, "02_informe_valido.csv", canal=WEB, correo=DatosCorreo("a@b.cl", None, None))
     with pytest.raises(ValueError):
-        recibir(conexion, almacen, "02_nomina_valida.csv", canal=CORREO)
+        recibir(conexion, almacen, "02_informe_valido.csv", canal=CORREO)

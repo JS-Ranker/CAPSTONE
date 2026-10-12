@@ -4,19 +4,26 @@ Pendiente: la plataforma aún no tiene inicio de sesión (CU01, RF09). Cuando ex
 exigir el rol Analista o Administrador y registrar en la bitácora al usuario que carga el documento.
 """
 import imaplib
+import json
 from collections.abc import Callable, Iterator
 from contextlib import AbstractContextManager
 from dataclasses import asdict
 from pathlib import Path
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, Query, Response, UploadFile, status
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import Connection, text
 
 from ...config import settings
 from ...db import engine, transaccion
+from ..etl.carga import ERROR as ETL_ERROR
+from ..etl.carga import PROCESADO as ETL_PROCESADO
+from ..etl.carga import ErrorFormatoCsv, es_csv_tgr, procesar_archivo
+from ..excepciones.servicio import pendientes_por_informe
 from ..extraccion.plantilla import ERROR_EXTRACCION
 from .correo import REVISION_CORREO, Buzon, conectar_imap, revisar_buzon
+from .documentos import TIPOS_MIME, VISIBLES_EN_NAVEGADOR, DocumentoOriginal, ruta_segura
 from .pendientes import buscar_pendiente, extraer_pendiente, procesar_pendientes
 from .registro import (
     CORREO, PENDIENTE_EXTRACCION, SFTP, WEB, MotivoRechazo, ResumenCanal, recibir_documento, resumen_para_bitacora,
@@ -117,12 +124,23 @@ def cargar_archivo(
     documento = resultado.documento
     if documento.estado_archivo == PENDIENTE_EXTRACCION:
         tareas.add_task(extractor, documento.id_archivo)
+
+    # Un CSV con el formato TGR pasa por el ETL de inmediato (es rápido). Si su contenido no sirve,
+    # el documento igual queda recibido, en estado "Error", y la respuesta lo informa.
+    etl, estado = None, documento.estado_archivo
+    if documento.tipo_documento == "CSV" and es_csv_tgr(almacen / documento.ruta_original):
+        try:
+            resumen = procesar_archivo(conexion, documento.id_archivo, almacen)
+            etl, estado = asdict(resumen), ETL_PROCESADO
+        except ErrorFormatoCsv as exc:
+            etl, estado = {"error": str(exc)}, ETL_ERROR
     return {
         "id_archivo": documento.id_archivo,
         "nombre_archivo": documento.nombre_archivo,
         "canal_origen": documento.canal_origen,
         "tipo_documento": documento.tipo_documento,
-        "estado_archivo": documento.estado_archivo,
+        "estado_archivo": estado,
+        "etl": etl,
     }
 
 
@@ -144,8 +162,10 @@ def listar_archivos(
                  "OFFSET :desplazamiento ROWS FETCH NEXT :limite ROWS ONLY"),
             {"desplazamiento": desplazamiento, "limite": limite},
         ).mappings().all()
+        # Deudores de cada informe que esperan revisión manual (casos dudosos y filas rechazadas).
+        por_revisar = pendientes_por_informe(conexion, [f["id_archivo"] for f in filas])
     return {"total": total, "con_error": con_error, "limite": limite, "desplazamiento": desplazamiento,
-            "archivos": [dict(f) for f in filas]}
+            "archivos": [dict(f) | {"por_revisar": por_revisar.get(f["id_archivo"], 0)} for f in filas]}
 
 
 @router.get("/archivos/{id_archivo}")
@@ -157,6 +177,49 @@ def obtener_archivo(id_archivo: int, conexion: Connection = Depends(obtener_cone
     if fila is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Archivo no encontrado")
     return dict(fila)
+
+
+@router.get("/archivos/{id_archivo}/historial")
+def historial_archivo(id_archivo: int, conexion: Connection = Depends(obtener_conexion)):
+    """Lo que pasó con el documento según la bitácora (RF10): recepción, extracción, ETL, en orden."""
+    with transaccion(conexion):
+        if conexion.execute(text("SELECT 1 FROM dbo.Archivos_TGR WHERE id_archivo = :id"),
+                            {"id": id_archivo}).scalar_one_or_none() is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Archivo no encontrado")
+        # JSON_VALUE compara el id exacto (un LIKE confundiría el 17 con el 178).
+        filas = conexion.execute(text(
+            "SELECT b.id_bitacora, b.accion_ejecutada AS accion, b.timestamp_accion AS fecha, "
+            "u.nombre_completo AS usuario, b.detalle_cambio "
+            "FROM dbo.Bitacora_Trazabilidad b JOIN dbo.Usuarios u ON u.id_usuario = b.id_usuario "
+            "WHERE ISJSON(b.detalle_cambio) = 1 AND JSON_VALUE(b.detalle_cambio, '$.id_archivo') = :id "
+            "ORDER BY b.id_bitacora"
+        ), {"id": str(id_archivo)}).mappings().all()
+    return [{"id_bitacora": f["id_bitacora"], "accion": f["accion"], "fecha": f["fecha"], "usuario": f["usuario"],
+             "detalle": json.loads(f["detalle_cambio"])} for f in filas]
+
+
+@router.get("/archivos/{id_archivo}/documento")
+def documento_archivo(
+    id_archivo: int,
+    conexion: Connection = Depends(obtener_conexion),
+    almacen: Path = Depends(obtener_almacen),
+):
+    """El archivo tal como llegó. PDF e imágenes se abren en el navegador; el resto se descarga."""
+    with transaccion(conexion):
+        fila = conexion.execute(
+            text("SELECT nombre_archivo, ruta_original FROM dbo.Archivos_TGR WHERE id_archivo = :id"),
+            {"id": id_archivo},
+        ).one_or_none()
+    if fila is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Archivo no encontrado")
+    ruta = ruta_segura(almacen, DocumentoOriginal(id_archivo, fila.nombre_archivo, fila.ruta_original))
+    if ruta is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail=f"{fila.nombre_archivo} está registrado pero no se encuentra en el almacén.")
+    extension = ruta.suffix.lower()
+    return FileResponse(ruta, media_type=TIPOS_MIME.get(extension, "application/octet-stream"),
+                        filename=fila.nombre_archivo,
+                        content_disposition_type="inline" if extension in VISIBLES_EN_NAVEGADOR else "attachment")
 
 
 @router.get("/estado")

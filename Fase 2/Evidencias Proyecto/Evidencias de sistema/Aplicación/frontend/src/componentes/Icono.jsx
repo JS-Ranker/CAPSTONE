@@ -1,6 +1,7 @@
 // Íconos de línea (24×24, trazo de 1,75). Son decorativos: el texto que los acompaña da el significado.
 const TRAZOS = {
   ingesta: ['M12 3v11', 'm8 10 4 4 4-4', 'M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4'],
+  casos: ['M9 6h11', 'M9 12h11', 'M9 18h11', 'M4.5 6h.01', 'M4.5 12h.01', 'M4.5 18h.01'],
   dashboard: ['M4 4h6v7H4z', 'M14 4h6v4h-6z', 'M14 12h6v8h-6z', 'M4 15h6v5H4z'],
   excepciones: ['M10.3 4.2 2.6 17.5A2 2 0 0 0 4.3 20.5h15.4a2 2 0 0 0 1.7-3L13.7 4.2a2 2 0 0 0-3.4 0Z', 'M12 9.5v4', 'M12 17h.01'],
   reportes: ['M4 4v16h16', 'M8.5 16v-4', 'M13 16V8', 'M17.5 16v-6'],

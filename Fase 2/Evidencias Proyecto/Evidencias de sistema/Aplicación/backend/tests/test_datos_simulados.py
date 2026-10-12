@@ -1,14 +1,19 @@
-"""Pruebas del generador de datos simulados: los archivos deben cumplir lo que dice el manifiesto."""
+"""Pruebas del generador de informes de deudores simulados: los archivos cumplen lo que dice el manifiesto."""
 import csv
+import hashlib
 import json
+import re
 
 import pdfplumber
 import pytest
+from docx import Document
 from openpyxl import load_workbook
 
-from scripts.generar_datos_simulados import COLUMNAS, digito_verificador, generar
+from scripts.generar_datos_simulados import (
+    CARGADO, COLUMNAS, DUPLICADO, RECHAZADO, REVISION, TITULOS, digito_verificador, generar,
+)
 
-CAMPOS_OBLIGATORIOS = ("monto", "cuenta_destino", "codigo_banco", "tipo_movimiento")  # RN03
+_EXPEDIENTE = re.compile(r"^\d+-\d{4} .+$")
 
 
 @pytest.fixture(scope="module")
@@ -27,148 +32,108 @@ def entrada(manifiesto, nombre):
     return next(a for a in manifiesto["archivos"] if a["archivo"].endswith(nombre))
 
 
-def leer_delimitado(ruta, delimitador=";", encoding="utf-8"):
-    with ruta.open(encoding=encoding, newline="") as archivo:
-        filas = list(csv.reader(archivo, delimiter=delimitador))
-    return filas[0], filas[1], filas[2:-1], filas[-1]
-
-
 def rut_valido(rut):
-    numero, _, dv = rut.partition("-")
+    numero, _, dv = (rut or "").partition("-")
     return numero.isdigit() and dv != "" and digito_verificador(int(numero)) == dv.upper()
 
 
-def clave_rn02(registro):
-    return registro["id_transaccion"], registro["rut_deudor"], registro["monto"], registro["fecha_origen"]
+def huellas(carpeta):
+    return {p.relative_to(carpeta).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
+            for p in sorted(carpeta.rglob("*")) if p.is_file()}
 
 
-@pytest.mark.parametrize("numero, dv", [(11111111, "1"), (12345678, "5"), (22222222, "2"), (10000013, "K")])
-def test_digito_verificador_modulo_11(numero, dv):
-    assert digito_verificador(numero) == dv
+def test_misma_semilla_mismos_archivos(salida, tmp_path):
+    otra = tmp_path / "otra"
+    generar(otra, semilla=2026)
+    assert huellas(otra) == huellas(salida)
 
 
 def test_todos_los_archivos_del_manifiesto_existen(salida, manifiesto):
     for archivo in manifiesto["archivos"]:
         assert (salida / archivo["archivo"]).is_file(), archivo["archivo"]
-    assert (salida / manifiesto["cruce_banco_generico"]["archivo"]).is_file()
+    assert (salida / manifiesto["banco_generico"]["archivo"]).is_file()
 
 
-def test_ruts_validos_fuera_del_rango_de_personas_y_empresas(manifiesto):
+def test_ruts_ficticios_en_el_rango_reservado(manifiesto):
     for archivo in manifiesto["archivos"]:
         for registro in archivo.get("registros", []):
-            if registro["estado_esperado"] == "Válido":
-                assert rut_valido(registro["rut_deudor"]), registro
-                assert 40_000_000 <= int(registro["rut_deudor"].split("-")[0]) <= 49_999_999
+            if rut_valido(registro["rut"]):
+                assert 40_000_000 <= int(registro["rut"].split("-")[0]) <= 49_999_999
 
 
-def test_csv_valido_cuadra_con_encabezado_y_pie(salida):
-    encabezado, columnas, detalle, pie = leer_delimitado(salida / "estructurados/02_nomina_valida.csv")
-    assert tuple(columnas) == COLUMNAS
-    assert int(encabezado[4]) == len(detalle) == int(pie[1]) == 120
-    assert sum(int(fila[4]) for fila in detalle) == int(pie[2])
+def test_deudores_cargados_tienen_los_datos_criticos_bien_formados(manifiesto):
+    for archivo in manifiesto["archivos"]:
+        for registro in archivo.get("registros", []):
+            if registro["estado_esperado"] in (CARGADO, REVISION, DUPLICADO):
+                assert rut_valido(registro["rut"]), registro
+                assert isinstance(registro["monto_solicitado"], int) and registro["monto_solicitado"] > 0, registro
+                assert _EXPEDIENTE.match(registro["expediente"]), registro
 
 
-def test_txt_en_latin1_separado_por_barra(salida):
-    ruta = salida / "estructurados/03_nomina_latin1.txt"
-    assert "Depósito".encode("latin-1") in ruta.read_bytes()
-    _, columnas, detalle, pie = leer_delimitado(ruta, delimitador="|", encoding="latin-1")
-    assert tuple(columnas) == COLUMNAS
-    assert sum(int(fila[4]) for fila in detalle) == int(pie[2])
+def test_los_casos_de_borde_cubren_cada_resultado(manifiesto):
+    casos = entrada(manifiesto, "04_informe_casos_borde.xlsx")
+    estados = {r["estado_esperado"] for r in casos["registros"]}
+    assert estados == {CARGADO, RECHAZADO, REVISION, DUPLICADO}
+    assert all(r.get("motivo") for r in casos["registros"] if r["estado_esperado"] != CARGADO)
 
 
-def test_excel_valido_con_celdas_tipadas(salida):
-    hoja = load_workbook(salida / "estructurados/01_nomina_valida.xlsx").active
+def test_totales_declarados_cuadran_salvo_en_los_que_no_deben(manifiesto):
+    for archivo in manifiesto["archivos"]:
+        if "registros" not in archivo:
+            continue
+        suma = sum(r["monto_solicitado"] for r in archivo["registros"] if r["monto_solicitado"] is not None)
+        cuadra = (archivo["suma_declarada"], archivo["cantidad_declarada"]) == (suma, len(archivo["registros"]))
+        assert cuadra == ("no_cuadra" not in archivo["archivo"]), archivo["archivo"]
+
+
+def test_excel_con_celdas_numericas_y_de_fecha(salida, manifiesto):
+    hoja = load_workbook(salida / entrada(manifiesto, "01_informe_valido.xlsx")["archivo"]).active
     filas = list(hoja.iter_rows(values_only=True))
-    encabezado, columnas, detalle, pie = filas[0], filas[1], filas[2:-1], filas[-1]
-    assert tuple(columnas) == COLUMNAS
-    assert int(encabezado[4]) == len(detalle) == int(pie[1])
-    assert all(isinstance(fila[4], int) for fila in detalle)
-    assert sum(fila[4] for fila in detalle) == int(pie[2])
+    titulos = filas.index(tuple(TITULOS[c] for c in COLUMNAS))
+    primera = filas[titulos + 1]
+    assert isinstance(primera[COLUMNAS.index("monto_solicitado")], int)
+    assert primera[COLUMNAS.index("fecha_oficio")].year == 2026
 
 
-def test_errores_de_estructura(salida):
-    *_, detalle, pie = leer_delimitado(salida / "estructurados/06_nomina_totales_no_cuadran.csv")
-    assert sum(int(fila[4]) for fila in detalle) != int(pie[2])
-
-    *_, ultima = leer_delimitado(salida / "estructurados/08_nomina_sin_pie.csv")
-    assert ultima[0] != "TOTALES"
-
-    _, columnas, _, _ = leer_delimitado(salida / "estructurados/09_nomina_columnas_incorrectas.csv")
-    assert "cuenta_destino" not in columnas and "importe" in columnas
-
-    with pytest.raises(Exception):
-        load_workbook(salida / "estructurados/10_nomina_corrupta.xlsx")
+def test_txt_en_latin1_separado_por_barra(salida, manifiesto):
+    ruta = salida / entrada(manifiesto, "03_informe_latin1.txt")["archivo"]
+    texto = ruta.read_bytes().decode("latin-1")
+    with pytest.raises(UnicodeDecodeError):
+        ruta.read_bytes().decode("utf-8")
+    assert "|".join(TITULOS[c] for c in COLUMNAS) in texto
 
 
-def test_reenvio_es_identico_al_original(salida):
-    original = (salida / "estructurados/01_nomina_valida.xlsx").read_bytes()
-    assert (salida / "estructurados/12_nomina_valida_reenvio.xlsx").read_bytes() == original
+def test_csv_utf8_separado_por_punto_y_coma(salida, manifiesto):
+    ruta = salida / entrada(manifiesto, "02_informe_valido.csv")["archivo"]
+    with ruta.open(encoding="utf-8", newline="") as archivo:
+        filas = list(csv.reader(archivo, delimiter=";"))
+    assert [TITULOS[c] for c in COLUMNAS] in filas
+    assert filas[-1][0] == "TOTALES"
 
 
-def test_casos_de_borde_coinciden_con_las_reglas(manifiesto):
-    registros = entrada(manifiesto, "04_nomina_casos_borde.xlsx")["registros"]
-    vistos = set()
-    for registro in registros:
-        estado, motivo = registro["estado_esperado"], registro.get("motivo", "")
-        if estado == "Válido":
-            assert rut_valido(registro["rut_deudor"]), registro
-            assert all(registro[campo] not in (None, "") for campo in CAMPOS_OBLIGATORIOS), registro
-        if motivo.startswith("RN01"):
-            assert not rut_valido(registro["rut_deudor"]), registro
-        if motivo.startswith("RN03"):
-            assert any(registro[campo] in (None, "") for campo in CAMPOS_OBLIGATORIOS), registro
-        if estado == "Duplicado":
-            assert clave_rn02(registro) in vistos, registro
-        vistos.add(clave_rn02(registro))
-    assert {r["estado_esperado"] for r in registros} == {"Válido", "Inválido", "Duplicado"}
+def test_word_con_una_tabla_de_deudores(salida, manifiesto):
+    esperado = entrada(manifiesto, "13_informe_valido.docx")
+    documento = Document(str(salida / esperado["archivo"]))
+    tabla = documento.tables[0]
+    assert [c.text for c in tabla.rows[0].cells] == [TITULOS[c] for c in COLUMNAS]
+    assert len(tabla.rows) - 1 == esperado["registros_en_detalle"]
+    assert tabla.rows[1].cells[0].text.count(".") == 2          # RUT con puntos, como se imprime
 
 
-def test_lote2_repite_transacciones_del_csv_valido(manifiesto):
-    claves_02 = {clave_rn02(r) for r in entrada(manifiesto, "02_nomina_valida.csv")["registros"]}
-    duplicados = [r for r in entrada(manifiesto, "05_nomina_lote2_con_duplicados.csv")["registros"]
-                  if r["estado_esperado"] == "Duplicado"]
-    assert len(duplicados) == 5
-    assert all(clave_rn02(r) in claves_02 for r in duplicados)
+def test_reenvio_es_copia_exacta(salida, manifiesto):
+    original = (salida / entrada(manifiesto, "01_informe_valido.xlsx")["archivo"]).read_bytes()
+    assert (salida / entrada(manifiesto, "12_informe_valido_reenvio.xlsx")["archivo"]).read_bytes() == original
 
 
-def test_pdf_con_texto_contiene_la_tabla(salida, manifiesto):
-    with pdfplumber.open(salida / "no_estructurados/21_nomina_pdf_texto.pdf") as pdf:
-        tabla = pdf.pages[0].extract_table()
-    esperados = entrada(manifiesto, "21_nomina_pdf_texto.pdf")["registros"]
-    assert [fila[0] for fila in tabla[1:]] == [r["id_transaccion"] for r in esperados]
+def test_pdf_con_texto_seleccionable_y_escaneado_sin_texto(salida, manifiesto):
+    with pdfplumber.open(salida / entrada(manifiesto, "21_informe_pdf_texto.pdf")["archivo"]) as pdf:
+        assert "Informe de deudores" in pdf.pages[0].extract_text()
+    with pdfplumber.open(salida / entrada(manifiesto, "23_informe_escaneado.pdf")["archivo"]) as pdf:
+        assert not (pdf.pages[0].extract_text() or "").strip()
 
 
-def test_pdf_escaneado_no_tiene_texto_seleccionable(salida):
-    with pdfplumber.open(salida / "no_estructurados/23_nomina_escaneada.pdf") as pdf:
-        pagina = pdf.pages[0]
-        assert not (pagina.extract_text() or "").strip()
-        assert pagina.images
-
-
-def test_cruce_banco_generico(salida, manifiesto):
-    cruce = manifiesto["cruce_banco_generico"]
-    with (salida / cruce["archivo"]).open(encoding="utf-8", newline="") as archivo:
-        cuentas = {fila["cuenta"]: fila for fila in csv.DictReader(archivo, delimiter=";")}
-    assert len(cuentas) == cruce["cuentas"]
-    for caso in cruce["casos"]:
-        cuenta = cuentas.get(caso["cuenta_destino"])
-        if caso["caso"] == "Cuenta de destino cerrada":
-            assert cuenta["estado_cuenta"] == "Cerrada"
-        elif caso["caso"] == "Cuenta de destino inexistente en Banco Genérico":
-            assert cuenta is None
-        else:
-            assert cuenta["rut_titular"] != caso["rut_deudor"]
-
-
-def test_misma_semilla_produce_los_mismos_datos(salida, tmp_path):
-    generar(tmp_path, semilla=2026)
-    for nombre in ("manifiesto.json", "estructurados/02_nomina_valida.csv", "estructurados/01_nomina_valida.xlsx",
-                   "banco_generico/cuentas_core_bancario.csv"):
-        assert (tmp_path / nombre).read_bytes() == (salida / nombre).read_bytes(), nombre
-
-
-def test_nomina_de_volumen(tmp_path):
-    manifiesto = generar(tmp_path, semilla=1, grande=500)
-    assert "registros" not in entrada(manifiesto, "90_nomina_volumen.csv")
-    *_, detalle, pie = leer_delimitado(tmp_path / "estructurados/90_nomina_volumen.csv")
-    assert len(detalle) == int(pie[1]) == 500
+def test_cuentas_del_banco_solo_para_deudores_cargados(salida, manifiesto):
+    with (salida / manifiesto["banco_generico"]["archivo"]).open(encoding="utf-8", newline="") as archivo:
+        cuentas = list(csv.DictReader(archivo, delimiter=";"))
+    assert len(cuentas) == manifiesto["banco_generico"]["cuentas"]
+    assert all(rut_valido(c["rut_titular"]) and c["estado_cuenta"] == "Activa" for c in cuentas)

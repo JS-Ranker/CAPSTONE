@@ -1,4 +1,4 @@
-"""Partes comunes de los documentos de nómina: títulos de columnas, encabezado y totales.
+"""Partes comunes de los informes de deudores: títulos de columnas, encabezado y totales.
 
 Los formatos de encabezado ("Lote: …") y totales ("TOTALES Registros: … Monto total: …") son
 los de los documentos simulados; si la TGR usa otros, se ajustan aquí.
@@ -12,15 +12,15 @@ from .plantilla import ResultadoExtraccion
 
 # Títulos que puede traer el documento para cada columna de la plantilla (sin tildes, en minúscula).
 TITULOS = {
-    "id_transaccion": ("id transaccion", "id"),
-    "rut_deudor": ("rut deudor", "rut"),
-    "nombre_deudor": ("nombre deudor", "nombre"),
-    "folio_deuda": ("folio deuda", "folio"),
-    "monto": ("monto",),
-    "fecha_origen": ("fecha origen", "fecha"),
-    "cuenta_destino": ("cuenta destino", "cuenta"),
-    "codigo_banco": ("codigo banco", "banco"),
-    "tipo_movimiento": ("tipo movimiento", "tipo"),
+    "rut": ("rut", "rut deudor"),
+    "nombre": ("nombre", "nombre deudor", "nombre cliente"),
+    "id_demanda": ("id demanda", "id demanda*", "demanda"),
+    "n_resolucion": ("n resolucion", "n° resolucion", "nº resolucion", "no resolucion", "resolucion"),
+    "monto_solicitado": ("monto solicitado", "monto"),
+    "tipo_embargo": ("tipo embargo", "tipo"),
+    "expediente": ("expediente", "rol"),
+    "tesoreria": ("tesoreria",),
+    "fecha_oficio": ("fecha oficio", "fecha"),
 }
 _COLUMNA_POR_TITULO = {titulo: columna for columna, titulos in TITULOS.items() for titulo in titulos}
 

@@ -1,5 +1,8 @@
-"""Proceso ETL: parsing de encabezado, detalle y totales de control, normalización de fechas y montos, y carga en SQL Server.
+"""Proceso ETL de casos TGR: CSV -> stg.casos_tgr -> core.casos_tgr, con las reglas de Normalizar_TGR.ktr.
 
-Requerimientos: RF02, RN04
-Responsable: Tomas Catalán
+reglas.py: normalización y validación de una fila (sin base de datos).
+carga.py: ejecución completa, con duplicados, resultados por fila (etl.resultados) y bitácora.
+
+Requerimientos: RF02, RF03, RN04
+Responsable: Tomás Catalán (modelo y reglas, en los .ktr de "Base de datos"); versión Python: Héctor Sanhueza
 """

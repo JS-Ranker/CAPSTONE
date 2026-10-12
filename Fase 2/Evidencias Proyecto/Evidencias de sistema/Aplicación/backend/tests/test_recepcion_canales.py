@@ -26,21 +26,57 @@ AUTORIZADOS = ("nominas@tgr.cl",)
 # --- Extracción de los documentos pendientes (CU02 paso 5 -> CU12) ----------------------------------------
 
 def test_normaliza_un_pdf_con_texto_pendiente(conexion, almacen):
-    documento = recibir(conexion, almacen, "21_nomina_pdf_texto.pdf").documento
+    documento = recibir(conexion, almacen, "21_informe_pdf_texto.pdf").documento
 
     resumen = procesar_pendientes(conexion, almacen)
 
     assert (resumen.normalizados, resumen.con_error) == (1, 0)
     registro = fila(conexion, documento.id_archivo)
-    assert (registro["estado_archivo"], registro["total_registros"]) == ("Normalizado", 25)
+    # Se extrae y pasa al ETL en la misma ejecución: el informe queda "Procesado" con sus 25 casos.
+    assert (registro["estado_archivo"], registro["total_registros"]) == ("Procesado", 25)
     assert float(registro["confianza_extraccion"]) == 100.0
     assert ruta_plantilla(almacen / documento.ruta_original).is_file()
     accion, detalle = ultima_bitacora(conexion)
-    assert accion == "Extracción de documento" and detalle["estado"] == "Normalizado"
+    assert accion == "Ejecución ETL" and detalle["cargadas"] == 25
+    assert conexion.execute(text("SELECT COUNT(*) FROM core.casos_tgr")).scalar_one() == 25
+
+
+@pytest.mark.parametrize("nombre", ["04_informe_casos_borde.xlsx", "13_informe_valido.docx"])
+def test_informe_de_punta_a_punta_da_el_resultado_del_manifiesto(conexion, almacen, nombre):
+    """Recepción -> extracción -> ETL: cada deudor termina como dice el manifiesto de los datos simulados."""
+    import json
+
+    from app.modulos.excepciones import servicio as bandeja
+    from tests.conftest import SIMULADOS
+
+    manifiesto = json.loads((SIMULADOS / "manifiesto.json").read_text(encoding="utf-8"))
+    esperado = next(a for a in manifiesto["archivos"] if a["archivo"].endswith(nombre))
+    documento = recibir(conexion, almacen, nombre).documento
+
+    procesar_pendientes(conexion, almacen)
+
+    assert fila(conexion, documento.id_archivo)["estado_archivo"] == "Procesado"
+    obtenidos = conexion.execute(text(
+        "SELECT r.resultado, c.rev_manual_bit FROM etl.resultados r "
+        "JOIN etl.ejecuciones e ON e.id_ejecucion = r.id_ejecucion "
+        "LEFT JOIN core.casos_tgr c ON c.id_caso = r.id_caso AND r.resultado = 'Cargado' "
+        "WHERE e.id_archivo = :id ORDER BY r.id_stg"
+    ), {"id": documento.id_archivo}).all()
+    como_manifiesto = {"Cargado": "Cargado", "Rechazado": "Rechazado", "Duplicado": "Duplicado"}
+    resultados = ["Revisión manual" if revision else como_manifiesto[resultado] for resultado, revision in obtenidos]
+    assert resultados == [r["estado_esperado"] for r in esperado["registros"]]
+
+    # Los dudosos y los rechazados quedan en la Bandeja de Excepciones, con el informe como documento original.
+    en_revision = resultados.count("Revisión manual")
+    excepciones = bandeja.listar(conexion, tipo=None, estado="Pendiente", buscar=None, limite=100, desplazamiento=0)
+    assert excepciones["pendientes"] == {"caso": en_revision, "rechazo": resultados.count("Rechazado")}
+    if en_revision:
+        caso = next(e for e in excepciones["excepciones"] if e["tipo"] == "caso")
+        assert bandeja.documento_original(conexion, "caso", caso["id"]).id_archivo == documento.id_archivo
 
 
 def test_un_pdf_cuyos_totales_no_cuadran_queda_con_error_de_extraccion(conexion, almacen):
-    documento = recibir(conexion, almacen, "22_nomina_pdf_texto_totales_no_cuadran.pdf").documento
+    documento = recibir(conexion, almacen, "22_informe_pdf_texto_totales_no_cuadran.pdf").documento
 
     procesar_pendientes(conexion, almacen)
 
@@ -50,13 +86,13 @@ def test_un_pdf_cuyos_totales_no_cuadran_queda_con_error_de_extraccion(conexion,
 
 def test_un_pdf_ilegible_no_detiene_el_lote(conexion, almacen):
     danado = recibir_documento(conexion, b"%PDF-1.4 roto", "roto.pdf", WEB, almacen=almacen, tamano_maximo=MB)
-    bueno = recibir(conexion, almacen, "21_nomina_pdf_texto.pdf")
+    bueno = recibir(conexion, almacen, "21_informe_pdf_texto.pdf")
 
     resumen = procesar_pendientes(conexion, almacen)
 
     assert (resumen.normalizados, resumen.con_error) == (1, 1)
     assert fila(conexion, danado.documento.id_archivo)["estado_archivo"] == "Error de Extracción"
-    assert fila(conexion, bueno.documento.id_archivo)["estado_archivo"] == "Normalizado"
+    assert fila(conexion, bueno.documento.id_archivo)["estado_archivo"] == "Procesado"
     assert procesar_pendientes(conexion, almacen).procesados == 0  # volver a ejecutar no repite nada
 
 
@@ -65,11 +101,11 @@ def test_un_pdf_ilegible_no_detiene_el_lote(conexion, almacen):
 def test_revisa_el_directorio_sftp(conexion, almacen, tmp_path):
     entrada = tmp_path / "sftp"
     entrada.mkdir()
-    for nombre in ("01_nomina_valida.xlsx", "12_nomina_valida_reenvio.xlsx", "02_nomina_valida.csv"):
+    for nombre in ("01_informe_valido.xlsx", "12_informe_valido_reenvio.xlsx", "02_informe_valido.csv"):
         shutil.copy(simulado(nombre), entrada / nombre)
     (entrada / "virus.exe").write_bytes(b"MZ")
     (entrada / "subiendo.csv.part").write_bytes(b"incompleto")
-    (entrada / "recien_llegado.txt").write_bytes(simulado("03_nomina_latin1.txt").read_bytes())
+    (entrada / "recien_llegado.txt").write_bytes(simulado("03_informe_latin1.txt").read_bytes())
     hace_dos_minutos = os.path.getmtime(entrada / "virus.exe") - 120
     for ruta in entrada.iterdir():
         if ruta.name != "recien_llegado.txt":
@@ -83,7 +119,7 @@ def test_revisa_el_directorio_sftp(conexion, almacen, tmp_path):
     assert restantes == ["recien_llegado.txt", "subiendo.csv.part"]
     assert len(list((entrada / "procesados").rglob("*.*"))) == 2
     rechazados = sorted(ruta.name for ruta in (entrada / "rechazados").rglob("*.*"))
-    assert rechazados == ["12_nomina_valida_reenvio.xlsx", "virus.exe"]
+    assert rechazados == ["12_informe_valido_reenvio.xlsx", "virus.exe"]
     canales = conexion.execute(text("SELECT DISTINCT canal_origen FROM dbo.Archivos_TGR")).scalars().all()
     assert canales == ["SFTP"]
 
@@ -91,7 +127,7 @@ def test_revisa_el_directorio_sftp(conexion, almacen, tmp_path):
 def test_sftp_no_sobrescribe_un_procesado_con_el_mismo_nombre(conexion, almacen, tmp_path):
     entrada = tmp_path / "sftp"
     entrada.mkdir()
-    for nombre in ("02_nomina_valida.csv", "05_nomina_lote2_con_duplicados.csv"):
+    for nombre in ("02_informe_valido.csv", "05_informe_mes2_con_repetidos.csv"):
         ruta = entrada / "nomina.csv"
         ruta.write_bytes(simulado(nombre).read_bytes())
         # En Windows la fecha de un archivo recién escrito puede quedar unos milisegundos por delante de
@@ -133,8 +169,8 @@ def correo(remitente, asunto, *adjuntos) -> EmailMessage:
 
 def test_revisa_la_casilla_de_correo(conexion, almacen):
     buzon = BuzonEnMemoria({
-        "1": correo("Nominas@TGR.cl", "Nóminas octubre", "02_nomina_valida.csv", "21_nomina_pdf_texto.pdf"),
-        "2": correo("phishing@ejemplo.com", "Urgente", "01_nomina_valida.xlsx"),
+        "1": correo("Nominas@TGR.cl", "Nóminas octubre", "02_informe_valido.csv", "21_informe_pdf_texto.pdf"),
+        "2": correo("phishing@ejemplo.com", "Urgente", "01_informe_valido.xlsx"),
         "3": correo("nominas@tgr.cl", "Sin adjunto"),
     })
 
@@ -146,7 +182,7 @@ def test_revisa_la_casilla_de_correo(conexion, almacen):
     registros = conexion.execute(text(
         "SELECT nombre_archivo, remitente, asunto_correo, fecha_correo FROM dbo.Archivos_TGR ORDER BY nombre_archivo"
     )).all()
-    assert [r.nombre_archivo for r in registros] == ["02_nomina_valida.csv", "21_nomina_pdf_texto.pdf"]
+    assert [r.nombre_archivo for r in registros] == ["02_informe_valido.csv", "21_informe_pdf_texto.pdf"]
     assert {(r.remitente, r.asunto_correo) for r in registros} == {("nominas@tgr.cl", "Nóminas octubre")}
     esperado = datetime.fromisoformat("2026-10-01T09:30:00-03:00").astimezone().replace(tzinfo=None)
     assert registros[0].fecha_correo == esperado
@@ -167,12 +203,12 @@ def test_registra_la_foto_insertada_en_el_cuerpo_como_lo_hace_gmail(conexion, al
     mensaje.set_content("Adjunto la foto de la nómina.")
     mensaje.add_alternative('<p>Adjunto la foto.<img src="cid:foto"></p><p><img src="cid:logo"></p>', subtype="html")
     html = mensaje.get_payload()[1]
-    html.add_related(simulado("24_foto_nomina.jpg").read_bytes(), maintype="image", subtype="jpeg",
-                     cid="<foto>", filename="24_foto_nomina.jpg", disposition="inline")
+    html.add_related(simulado("24_foto_informe.jpg").read_bytes(), maintype="image", subtype="jpeg",
+                     cid="<foto>", filename="24_foto_informe.jpg", disposition="inline")
     html.add_related(b"\x89PNG logo de la firma", maintype="image", subtype="png",
                      cid="<logo>", filename="logo_tgr.png", disposition="inline")  # pequeña: se ignora
-    mensaje.add_attachment(simulado("08_nomina_sin_pie.csv").read_bytes(), maintype="text", subtype="csv",
-                           filename="08_nomina_sin_pie.csv")
+    mensaje.add_attachment(simulado("08_informe_sin_totales.csv").read_bytes(), maintype="text", subtype="csv",
+                           filename="08_informe_sin_totales.csv")
 
     resumen = revisar_buzon(conexion, BuzonEnMemoria({"1": mensaje}), remitentes_autorizados=AUTORIZADOS,
                             almacen=almacen, tamano_maximo=20 * MB)
@@ -180,11 +216,11 @@ def test_registra_la_foto_insertada_en_el_cuerpo_como_lo_hace_gmail(conexion, al
     assert (resumen.registrados, resumen.rechazados) == (2, 0)
     registrados = conexion.execute(text(
         "SELECT nombre_archivo, tipo_documento FROM dbo.Archivos_TGR ORDER BY nombre_archivo")).all()
-    assert [tuple(fila) for fila in registrados] == [("08_nomina_sin_pie.csv", "CSV"), ("24_foto_nomina.jpg", "Imagen")]
+    assert [tuple(fila) for fila in registrados] == [("08_informe_sin_totales.csv", "CSV"), ("24_foto_informe.jpg", "Imagen")]
 
 
 def test_si_falla_un_correo_queda_sin_leer_para_reintentar(conexion, almacen, monkeypatch):
-    buzon = BuzonEnMemoria({"1": correo("nominas@tgr.cl", "Nómina", "02_nomina_valida.csv")})
+    buzon = BuzonEnMemoria({"1": correo("nominas@tgr.cl", "Nómina", "02_informe_valido.csv")})
 
     def falla(*args, **kwargs):
         raise ConnectionError("sin base de datos")
@@ -231,14 +267,14 @@ def cargar(cliente, nombre_simulado):
 
 
 def test_api_carga_y_consulta_un_documento(cliente):
-    respuesta = cargar(cliente, "01_nomina_valida.xlsx")
+    respuesta = cargar(cliente, "01_informe_valido.xlsx")
     assert respuesta.status_code == 201, respuesta.json()
     creado = respuesta.json()
-    assert (creado["tipo_documento"], creado["estado_archivo"]) == ("Excel", "Recibido")
-    assert cliente.extracciones == []  # los Excel no pasan por la extracción
+    assert (creado["tipo_documento"], creado["estado_archivo"]) == ("Excel", "Pendiente de Extracción")
+    assert cliente.extracciones == [creado["id_archivo"]]  # el Excel también se extrae (sin OCR) en segundo plano
 
     detalle = cliente.get(f"/api/recepcion/archivos/{creado['id_archivo']}").json()
-    assert (detalle["nombre_archivo"], detalle["canal_origen"]) == ("01_nomina_valida.xlsx", "Web")
+    assert (detalle["nombre_archivo"], detalle["canal_origen"]) == ("01_informe_valido.xlsx", "Web")
     assert "ruta_original" not in detalle and "hash_sha256" not in detalle
 
     lista = cliente.get("/api/recepcion/archivos", params={"limite": 5}).json()
@@ -249,7 +285,7 @@ def test_api_carga_y_consulta_un_documento(cliente):
 def test_api_cuenta_los_documentos_con_error(cliente, conexion, almacen):
     recibir_documento(conexion, b"%PDF-1.4 roto", "roto.pdf", WEB, almacen=almacen, tamano_maximo=MB)
     procesar_pendientes(conexion, almacen)  # el PDF dañado queda en 'Error de Extracción'
-    cargar(cliente, "01_nomina_valida.xlsx")
+    cargar(cliente, "01_informe_valido.xlsx")
 
     lista = cliente.get("/api/recepcion/archivos").json()
 
@@ -257,22 +293,22 @@ def test_api_cuenta_los_documentos_con_error(cliente, conexion, almacen):
 
 
 def test_api_programa_la_extraccion_de_un_pdf(cliente):
-    respuesta = cargar(cliente, "21_nomina_pdf_texto.pdf")
+    respuesta = cargar(cliente, "21_informe_pdf_texto.pdf")
     assert respuesta.status_code == 201
     assert respuesta.json()["estado_archivo"] == "Pendiente de Extracción"
     assert cliente.extracciones == [respuesta.json()["id_archivo"]]
 
 
 def test_api_rechaza_un_reenvio_con_409(cliente):
-    primero = cargar(cliente, "01_nomina_valida.xlsx").json()
-    respuesta = cargar(cliente, "12_nomina_valida_reenvio.xlsx")
+    primero = cargar(cliente, "01_informe_valido.xlsx").json()
+    respuesta = cargar(cliente, "12_informe_valido_reenvio.xlsx")
     assert respuesta.status_code == 409
     assert respuesta.json()["detail"]["motivo"] == "DUPLICADO"
     assert respuesta.json()["detail"]["id_archivo_existente"] == primero["id_archivo"]
 
 
 def test_api_rechaza_tipos_no_permitidos_vacios_y_grandes(cliente, monkeypatch):
-    no_permitido = cliente.post("/api/recepcion/archivos", files={"archivo": ("nomina.docx", b"x")})
+    no_permitido = cliente.post("/api/recepcion/archivos", files={"archivo": ("informe.odt", b"x")})
     assert no_permitido.status_code == 415 and no_permitido.json()["detail"]["motivo"] == "TIPO_NO_PERMITIDO"
     assert cliente.post("/api/recepcion/archivos", files={"archivo": ("nomina.csv", b"")}).status_code == 400
     monkeypatch.setattr(api, "settings", replace(api.settings, tamano_maximo_mb=0))
@@ -281,21 +317,21 @@ def test_api_rechaza_tipos_no_permitidos_vacios_y_grandes(cliente, monkeypatch):
 
 def test_api_leer_correo_ahora(cliente):
     assert cliente.post("/api/recepcion/remitentes", json={"correo": "nominas@tgr.cl"}).status_code == 201
-    cliente.buzon.correos["1"] = correo("nominas@tgr.cl", "Nómina", "02_nomina_valida.csv", "21_nomina_pdf_texto.pdf")
+    cliente.buzon.correos["1"] = correo("nominas@tgr.cl", "Nómina", "02_informe_valido.csv", "21_informe_pdf_texto.pdf")
 
     respuesta = cliente.post("/api/recepcion/revisar/correo")
 
     assert respuesta.status_code == 200, respuesta.json()
     assert respuesta.json()["registrados"] == 2
-    assert cliente.procesamientos == [True]  # el PDF se normaliza en segundo plano
+    assert cliente.procesamientos == [True]  # los informes se extraen en segundo plano
     estado = cliente.get("/api/recepcion/estado").json()
     assert estado["correo"]["recibidos_hoy"] == 2 and estado["correo"]["ultima_revision"] is not None
-    assert estado["pendientes_extraccion"] == 1
+    assert estado["pendientes_extraccion"] == 2  # el CSV y el PDF
 
 
 def test_api_forzar_lectura_sftp(cliente):
-    archivo = cliente.sftp / "02_nomina_valida.csv"
-    shutil.copy(simulado("02_nomina_valida.csv"), archivo)
+    archivo = cliente.sftp / "02_informe_valido.csv"
+    shutil.copy(simulado("02_informe_valido.csv"), archivo)
     hace_un_minuto = archivo.stat().st_mtime - 60
     os.utime(archivo, (hace_un_minuto, hace_un_minuto))
 

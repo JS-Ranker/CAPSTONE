@@ -1,16 +1,20 @@
-"""Extracción y normalización de PDF, escaneos y fotografías a la plantilla estándar (tablas de PDF y OCR local con Tesseract), con nivel de confianza por registro.
+"""Extracción de los informes de deudores de la TGR a filas (una por deudor), con nivel de confianza.
 
-Requerimientos: RF12, RN05
+Formatos: PDF con texto (tablas, sin OCR), PDF escaneado y fotografía (OCR local con Tesseract),
+y Excel, CSV, TXT y Word (lectura directa, sin OCR).
+
+Requerimientos: RF02, RF12, RN04, RN05
 Responsable: Héctor Sanhueza
 
 Uso:
-    resultado = extraer(Path("nomina.pdf"))
+    resultado = extraer(Path("informe.pdf"))
     resultado.estado                # 'Normalizado' o 'Error de Extracción'
     resultado.registros[0].requiere_revision
-    escribir_plantilla(resultado, Path("nomina_normalizada.csv"))
 """
 from pathlib import Path
 
+from .estructurado import TIPOS as TIPOS_ESTRUCTURADOS
+from .estructurado import extraer_estructurado
 from .foto import extraer_foto
 from .ocr import extraer_escaneado
 from .pdf_texto import extraer_pdf_texto, tiene_texto
@@ -22,11 +26,11 @@ EXTENSIONES_IMAGEN = {".jpg", ".jpeg", ".png"}
 
 
 class FormatoNoSoportado(Exception):
-    """El documento no es un formato no estructurado que este módulo pueda convertir."""
+    """El documento no es un formato de informe que este módulo pueda leer."""
 
 
 def extraer(ruta: Path) -> ResultadoExtraccion:
-    """Convierte un PDF o una imagen de nómina a registros de la plantilla estándar."""
+    """Lee un informe de deudores en cualquiera de los formatos admitidos."""
     extension = ruta.suffix.lower()
     if extension == ".pdf":
         if tiene_texto(ruta):
@@ -34,4 +38,9 @@ def extraer(ruta: Path) -> ResultadoExtraccion:
         return extraer_escaneado(ruta)
     if extension in EXTENSIONES_IMAGEN:
         return extraer_foto(ruta)
-    raise FormatoNoSoportado(f"Extensión {extension!r} no corresponde a un documento no estructurado.")
+    if extension in TIPOS_ESTRUCTURADOS:
+        return extraer_estructurado(ruta)
+    if extension == ".xls":
+        return ResultadoExtraccion(tipo_documento="Excel", errores=[
+            "El formato .xls (Excel 97-2003) no se puede leer: pida el informe en .xlsx o guárdelo como .xlsx."])
+    raise FormatoNoSoportado(f"Extensión {extension!r} no corresponde a un informe que se pueda leer.")

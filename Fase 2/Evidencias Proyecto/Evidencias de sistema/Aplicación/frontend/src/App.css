@@ -100,7 +100,9 @@ h1, h2, h3 { margin: 0; color: var(--texto); }
   border-radius: var(--radio);
   font-size: 0.9rem;
 }
-.menu__item--activo { background: var(--lateral-activo); color: #fff; font-weight: 600; }
+a.menu__item { color: var(--lateral-texto); text-decoration: none; }
+a.menu__item:hover { background: rgb(255 255 255 / 0.05); color: #fff; }
+.menu__item--activo, a.menu__item--activo:hover { background: var(--lateral-activo); color: #fff; font-weight: 600; }
 .menu__item--activo .icono { color: #9cc0f0; }
 .menu__item--proximo { color: var(--lateral-tenue); }
 .menu__grupo {
@@ -134,6 +136,8 @@ h1, h2, h3 { margin: 0; color: var(--texto); }
   border-bottom: 1px solid var(--borde);
 }
 .encabezado h1 { font-size: 1.375rem; font-weight: 600; letter-spacing: -0.01em; }
+/* El título recibe el foco por código al cambiar de pantalla (no es interactivo): sin contorno. */
+.encabezado h1:focus { outline: none; }
 
 .contenido {
   display: grid;
@@ -262,6 +266,21 @@ h1, h2, h3 { margin: 0; color: var(--texto); }
 .enlace:hover:not(:disabled) { text-decoration-color: currentColor; }
 
 .acciones { display: flex; flex-wrap: wrap; gap: 8px; }
+.acciones--centradas { align-items: center; justify-content: space-between; }
+
+a { color: var(--primario); text-underline-offset: 3px; }
+
+/* --- Filtros de tablas (búsqueda + casillas) --- */
+.filtros { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px 20px; }
+.filtros__busqueda { display: flex; gap: 8px; }
+.filtros__busqueda input { width: min(260px, 100%); }
+.casilla { display: inline-flex; align-items: center; gap: 8px; min-height: 36px; font-size: 0.875rem; cursor: pointer; }
+.casilla input { width: 18px; height: 18px; margin: 0; accent-color: var(--primario); }
+
+.revision { display: grid; gap: 2px; justify-items: start; }
+.sin-salto { white-space: nowrap; }
+.bloque { display: block; }
+.motivo { font-weight: 500; }
 
 /* --- Mensajes --- */
 .aviso { margin: 0; padding: 0; font-size: 0.875rem; }
@@ -331,21 +350,21 @@ h1, h2, h3 { margin: 0; color: var(--texto); }
 .tabla td.nombre { min-width: 200px; }
 
 /* Lotes en tarjeta angosta: lista apilada en vez de tabla (ver TablaLotes). Depende del ancho de la tarjeta, no de la ventana. */
-.tarjeta--lotes { container-type: inline-size; }
-.lotes-lista { display: none; margin: 0; padding: 0; list-style: none; border-top: 1px solid var(--borde); }
-.lotes-lista__item { display: grid; gap: 6px; padding: 14px 0; border-bottom: 1px solid var(--borde); }
-.lotes-lista__cabecera { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; }
-.lotes-lista__nombre { font-size: 0.95rem; font-weight: 600; }
-.lotes-lista .id { font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; }
-.lotes-lista__datos { display: flex; flex-wrap: wrap; gap: 4px 24px; margin: 0; font-size: 0.875rem; }
-.lotes-lista__datos > div { display: flex; gap: 6px; }
-.lotes-lista__datos dt { color: var(--texto-suave); }
-.lotes-lista__datos dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; }
-.lotes-lista__boton { justify-self: start; margin-top: 4px; }
+.tarjeta--tabla { container-type: inline-size; }
+.lista-apilada { display: none; margin: 0; padding: 0; list-style: none; border-top: 1px solid var(--borde); }
+.lista-apilada__item { display: grid; gap: 6px; padding: 14px 0; border-bottom: 1px solid var(--borde); }
+.lista-apilada__cabecera { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; }
+.lista-apilada__nombre { font-size: 0.95rem; font-weight: 600; }
+.lista-apilada .id { font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; }
+.lista-apilada__datos { display: flex; flex-wrap: wrap; gap: 4px 24px; margin: 0; font-size: 0.875rem; }
+.lista-apilada__datos > div { display: flex; gap: 6px; }
+.lista-apilada__datos dt { color: var(--texto-suave); }
+.lista-apilada__datos dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; }
+.lista-apilada__boton { justify-self: start; margin-top: 4px; }
 
 @container (max-width: 700px) {
   .tabla-contenedor { display: none; }
-  .lotes-lista { display: grid; }
+  .lista-apilada { display: grid; }
 }
 
 .paginacion { display: flex; align-items: center; justify-content: flex-end; gap: 12px; font-size: 0.85rem; color: var(--texto-suave); }
@@ -360,6 +379,8 @@ h1, h2, h3 { margin: 0; color: var(--texto); }
   box-shadow: 0 24px 48px rgb(16 27 44 / 0.16);
   color: var(--texto);
 }
+.dialogo--ancho { width: min(760px, calc(100vw - 32px)); }
+.dialogo h2[tabindex='-1']:focus { outline: none; }
 .dialogo::backdrop { background: rgb(16 27 44 / 0.4); }
 .dialogo[open] { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
 .dialogo__cabecera { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
@@ -380,6 +401,20 @@ h1, h2, h3 { margin: 0; color: var(--texto); }
   color: var(--texto);
   font-size: 0.9rem;
 }
+.campo select, .campo textarea {
+  width: 100%;
+  min-height: 36px;
+  padding: 6px 10px;
+  border: 1px solid var(--borde-campo);
+  border-radius: var(--radio);
+  background: var(--superficie);
+  color: var(--texto);
+  font: inherit;
+  font-size: 0.9rem;
+}
+.campo textarea { resize: vertical; line-height: 1.4; }
+.campo textarea[aria-invalid='true'] { border-color: var(--error); }
+.campo__ayuda { margin: 0; font-size: 0.8rem; color: var(--texto-suave); }
 .campo input::placeholder { color: var(--texto-ejemplo); }
 .campo input[aria-invalid='true'] { border-color: var(--error); }
 .campo__error { margin: 0; font-size: 0.8rem; color: var(--error); }
@@ -407,9 +442,12 @@ h1, h2, h3 { margin: 0; color: var(--texto); }
   .aplicacion { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto 1fr; }
   .barra-lateral { position: static; gap: 10px; height: auto; padding: 14px 0 12px; }
   .marca { padding: 0 16px; }
-  /* El menú se oculta (solo la ingesta está construida y el título indica dónde se está),
-     pero el estado de la API y la base de datos se mantiene: el operador debe saber si el sistema está caído. */
-  .barra-lateral nav { display: none; }
+  /* Menú horizontal solo con las pantallas construidas; los módulos "Próximamente" se ocultan.
+     El estado de la API y la base de datos se mantiene: el operador debe saber si el sistema está caído. */
+  .barra-lateral .menu { display: flex; flex-wrap: wrap; gap: 4px; padding: 0 12px; }
+  .menu__grupo, .barra-lateral .menu--proximos { display: none; }
+  .filtros, .filtros__busqueda { width: 100%; }
+  .filtros__busqueda input { width: 100%; }
   .entorno { display: flex; flex-wrap: wrap; gap: 2px 20px; margin: 0; padding: 10px 16px 0; }
   .entorno__estado { margin-left: 0; }
   .encabezado { padding: 16px; }
@@ -426,3 +464,41 @@ h1, h2, h3 { margin: 0; color: var(--texto); }
 @media (prefers-reduced-motion: reduce) {
   .zona-carga, .boton { transition: none; }
 }
+
+/* --- Bandeja de Excepciones --- */
+.boton--peligro { color: var(--error); }
+.boton--peligro:hover:not(:disabled) { border-color: var(--error); background: var(--error-fondo); }
+
+.regla { padding: 10px 12px; border-left: 3px solid var(--advertencia); border-radius: 0 var(--radio) var(--radio) 0; background: var(--advertencia-fondo); }
+.regla__titulo { margin: 0; font-size: 0.75rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--advertencia-texto); }
+.regla__texto { margin: 2px 0 0; font-weight: 600; overflow-wrap: anywhere; }
+
+.formulario-revision { display: grid; gap: 16px; }
+.documento { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.documento .boton { text-decoration: none; }
+.campos-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin: 0; padding: 0; border: 0; min-width: 0; }
+.campos-grid .campo { align-content: start; }  /* sin esto, los campos sin ayuda se estiran al alto de la fila */
+.campos-grid legend { grid-column: 1 / -1; margin-bottom: 4px; padding: 0; font-size: 0.9rem; font-weight: 600; }
+
+.historial { display: grid; gap: 0; margin: 0; padding: 0; list-style: none; }
+.historial__item { display: grid; gap: 4px; padding: 10px 0; border-bottom: 1px solid var(--borde); }
+.historial__item:last-child { border-bottom: 0; }
+.historial__cabecera { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; }
+.historial__texto { margin: 0; font-size: 0.9rem; overflow-wrap: anywhere; }
+.historial__cambios { margin: 0; padding-left: 18px; font-size: 0.85rem; color: var(--texto-suave); }
+.aviso__titulo { margin: 0; font-weight: 600; }
+.aviso__lista { margin: 4px 0 0; padding-left: 18px; }
+.historial__accion { font-size: 0.9rem; }
+
+/* --- Filtro por informe --- */
+.filtro-informe { gap: 10px; }
+.filtro-informe__ayuda { align-self: flex-end; padding-bottom: 8px; }
+.filtro-informe__actual { margin: 0; padding-top: 10px; border-top: 1px solid var(--borde); font-size: 0.9rem; }
+.enlaces { display: flex; flex-wrap: wrap; gap: 6px 20px; margin: 0; font-weight: 600; }
+
+/* --- Tabla de informes recibidos: cabe sin scroll lateral --- */
+.tabla--informes td.nombre { min-width: 0; }
+.tabla--informes .etiqueta { white-space: normal; }        /* "Pendiente de Extracción" puede ir en dos líneas */
+.tabla--informes th, .tabla--informes td { padding-left: 10px; padding-right: 10px; }
+.enlace--archivo { text-align: left; font-weight: 600; overflow-wrap: anywhere; text-decoration-color: currentColor; }
+.enlace--archivo:hover { text-decoration-thickness: 2px; }

@@ -6,6 +6,7 @@ No ejecute dos procesos a la vez: el estado solo se actualiza si el documento si
 harían el OCR.
 """
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 
 from sqlalchemy import Connection, text
@@ -13,8 +14,13 @@ from sqlalchemy import Connection, text
 from ... import bitacora
 from ...db import transaccion
 from ..extraccion import ResultadoExtraccion, escribir_plantilla, extraer
-from ..extraccion.plantilla import NORMALIZADO
+from ..etl.carga import PROCESADO, ErrorFormatoCsv, ejecutar_filas
+from ..etl.desde_informe import filas_para_etl
+from ..extraccion.plantilla import ERROR_EXTRACCION, NORMALIZADO
 from .registro import PENDIENTE_EXTRACCION
+
+
+_COLUMNAS = "id_archivo, nombre_archivo, tipo_documento, ruta_original, fecha_recepcion, remitente, asunto_correo"
 
 
 @dataclass(frozen=True)
@@ -23,6 +29,9 @@ class DocumentoPendiente:
     nombre_archivo: str
     tipo_documento: str
     ruta_original: str  # relativa al almacén
+    fecha_recepcion: datetime
+    remitente: str | None
+    asunto_correo: str | None
 
 
 @dataclass
@@ -44,8 +53,8 @@ def ruta_plantilla(original: Path) -> Path:
 def documentos_pendientes(conexion: Connection, limite: int = 10) -> list[DocumentoPendiente]:
     with transaccion(conexion):
         filas = conexion.execute(
-            text("SELECT TOP (:limite) id_archivo, nombre_archivo, tipo_documento, ruta_original "
-                 "FROM dbo.Archivos_TGR WHERE estado_archivo = :estado ORDER BY fecha_recepcion, id_archivo"),
+            text(f"SELECT TOP (:limite) {_COLUMNAS} FROM dbo.Archivos_TGR "
+                 "WHERE estado_archivo = :estado ORDER BY fecha_recepcion, id_archivo"),
             {"limite": limite, "estado": PENDIENTE_EXTRACCION},
         ).all()
     return [DocumentoPendiente(*fila) for fila in filas]
@@ -54,8 +63,7 @@ def documentos_pendientes(conexion: Connection, limite: int = 10) -> list[Docume
 def buscar_pendiente(conexion: Connection, id_archivo: int) -> DocumentoPendiente | None:
     with transaccion(conexion):
         fila = conexion.execute(
-            text("SELECT id_archivo, nombre_archivo, tipo_documento, ruta_original FROM dbo.Archivos_TGR "
-                 "WHERE id_archivo = :id AND estado_archivo = :estado"),
+            text(f"SELECT {_COLUMNAS} FROM dbo.Archivos_TGR WHERE id_archivo = :id AND estado_archivo = :estado"),
             {"id": id_archivo, "estado": PENDIENTE_EXTRACCION},
         ).one_or_none()
     return DocumentoPendiente(*fila) if fila else None
@@ -88,7 +96,32 @@ def extraer_pendiente(conexion: Connection, documento: DocumentoPendiente, almac
             "registros_en_revision": en_revision, "confianza_promedio": resultado.confianza_promedio,
             "errores": resultado.errores, "observaciones": resultado.observaciones,
         })
-    return resultado.estado
+        if resultado.estado != NORMALIZADO:
+            return resultado.estado  # el documento completo va a revisión manual (CU12 5b)
+
+        # Los deudores pasan al ETL en la misma transacción: el documento queda "Procesado" con sus casos,
+        # o no queda nada a medias. Los dudosos se cargan marcados para revisión manual.
+        filas = filas_para_etl(resultado, nombre_archivo=documento.nombre_archivo,
+                               fecha_recepcion=documento.fecha_recepcion, remitente=documento.remitente,
+                               asunto=documento.asunto_correo)
+        try:
+            with conexion.begin_nested():
+                resumen = ejecutar_filas(conexion, filas, documento.nombre_archivo, documento.id_archivo)
+        except ErrorFormatoCsv as error:
+            _cambiar_estado(conexion, documento.id_archivo, ERROR_EXTRACCION)
+            bitacora.registrar(conexion, "Ejecución ETL rechazada", {
+                "id_archivo": documento.id_archivo, "archivo": documento.nombre_archivo, "motivo": str(error)})
+            return ERROR_EXTRACCION
+        _cambiar_estado(conexion, documento.id_archivo, PROCESADO, resumen.filas_leidas)
+    return PROCESADO
+
+
+def _cambiar_estado(conexion: Connection, id_archivo: int, estado: str, total: int | None = None) -> None:
+    conexion.execute(
+        text("UPDATE dbo.Archivos_TGR SET estado_archivo = :estado, "
+             "total_registros = COALESCE(:total, total_registros) WHERE id_archivo = :id"),
+        {"estado": estado, "total": total, "id": id_archivo},
+    )
 
 
 def procesar_pendientes(conexion: Connection, almacen: Path, limite: int = 10) -> ResumenExtraccion:
@@ -97,7 +130,7 @@ def procesar_pendientes(conexion: Connection, almacen: Path, limite: int = 10) -
         estado = extraer_pendiente(conexion, documento, almacen)
         if estado is None:
             resumen.omitidos += 1
-        elif estado == NORMALIZADO:
+        elif estado in (NORMALIZADO, PROCESADO):
             resumen.normalizados += 1
         else:
             resumen.con_error += 1

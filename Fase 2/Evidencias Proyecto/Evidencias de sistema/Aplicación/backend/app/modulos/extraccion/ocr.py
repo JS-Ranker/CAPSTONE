@@ -1,4 +1,4 @@
-"""OCR local con Tesseract de nóminas en imagen: PDF escaneados y fotografías (RF12, RN05).
+"""OCR local con Tesseract de informes de deudores en imagen: PDF escaneados y fotografías (RF12, RN05).
 
 Pasos por página:
 1. Enderezar la imagen usando las líneas horizontales de la tabla.
@@ -31,7 +31,7 @@ RESOLUCION_DPI = 200
 IDIOMA = "spa"
 ANGULO_MAXIMO = 5.0  # grados; un giro mayor no se corrige (probablemente no es una tabla)
 # Se releen si quedan bajo el umbral: los críticos de RN05 y los que forman la clave de RN02.
-CAMPOS_RELECTURA = (*CAMPOS_CRITICOS, "id_transaccion", "fecha_origen")
+CAMPOS_RELECTURA = (*CAMPOS_CRITICOS, "id_demanda", "fecha_oficio")
 # Interpretación de RN05 acordada por el equipo: Tesseract suele dar 80-89% a RUT bien leídos
 # (sobre todo con K). Si el RUT leído pasa Módulo 11, un error de lectura es muy improbable
 # (1 en 11), así que con al menos esta confianza se considera confiable.
@@ -195,7 +195,7 @@ def _registro(celdas: list[Celda], columnas: list[str | None], fila: int,
             if releida.confianza > celda.confianza:
                 celda = releida
         valor, confianza = normalizar(columna, celda.texto), celda.confianza
-        if columna == "rut_deudor" and confianza >= CONFIANZA_MINIMA_RUT_VERIFICADO and rut_valido(valor):
+        if columna == "rut" and confianza >= CONFIANZA_MINIMA_RUT_VERIFICADO and rut_valido(valor):
             confianza = max(confianza, UMBRAL_CONFIANZA)
         valores[columna], confianzas[columna] = valor, confianza
     return RegistroExtraido(valores, confianzas)

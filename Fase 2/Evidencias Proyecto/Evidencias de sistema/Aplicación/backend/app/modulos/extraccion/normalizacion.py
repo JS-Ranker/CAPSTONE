@@ -68,9 +68,9 @@ def normalizar_fecha(texto: str | None) -> str:
 
 
 NORMALIZADORES = {
-    "rut_deudor": normalizar_rut,
-    "monto": normalizar_monto,
-    "fecha_origen": normalizar_fecha,
+    "rut": normalizar_rut,
+    "monto_solicitado": normalizar_monto,
+    "fecha_oficio": normalizar_fecha,
 }
 
 

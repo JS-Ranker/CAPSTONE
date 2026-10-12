@@ -81,7 +81,7 @@ export function RecepcionAutomatica({ version, onRevisado }) {
 
           {/* Solo se muestra cuando hay algo pendiente: un "0" fijo es ruido */}
           {datos.pendientes_extraccion > 0 && (
-            <p className="nota">{formatearNumero(datos.pendientes_extraccion)} en lectura OCR</p>
+            <p className="nota">{formatearNumero(datos.pendientes_extraccion)} informes leyéndose</p>
           )}
         </>
       )}

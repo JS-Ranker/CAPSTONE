@@ -1,4 +1,4 @@
-"""Preparación de fotografías de nóminas para el OCR (RF12, etapa 3).
+"""Preparación de fotografías de informes para el OCR (RF12, etapa 3).
 
 Una foto de celular trae perspectiva, fondo alrededor de la hoja, sombras y menos resolución
 que un escaneo. Aquí se deja como si fuera un escaneo y luego se procesa igual que uno (ocr.py).

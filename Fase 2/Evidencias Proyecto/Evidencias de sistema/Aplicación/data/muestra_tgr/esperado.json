@@ -1,0 +1,256 @@
+{
+  "archivo": "resultado_tgr_20261012.csv",
+  "resumen": {
+    "Carga en core.casos_tgr": 28,
+    "Rechazado: indicador distinto de SI/NO (Validar_Indicadores)": 2,
+    "Rechazado: llave inválida (Validar_Llave_Caso)": 3,
+    "Descartado: duplicado de RUT, DV, rol y fecha de ingreso (Detectar_Duplicados)": 2
+  },
+  "filas": [
+    {
+      "fila": 2,
+      "rut": "46822128-4",
+      "expediente": "30237-2022 SANTIAGO",
+      "resultado": "Carga en core.casos_tgr",
+      "prueba": "caso válido"
+    },
+    {
+      "fila": 3,
+      "rut": "49171079-9",
+      "expediente": "81329-2020 ANTOFAGASTA",
+      "resultado": "Carga en core.casos_tgr",
+      "prueba": "caso válido"
+    },
+    {
+      "fila": 4,
+      "rut": "41591768-6",
+      "expediente": "53230-2024 SANTIAGO",
+      "resultado": "Carga en core.casos_tgr",
+      "prueba": "caso válido"
+    },
+    {
+      "fila": 5,
+      "rut": "46888853-K",
+      "expediente": "41603-2022 TALAGANTE",
+      "resultado": "Carga en core.casos_tgr",
+      "prueba": "caso válido"
+    },
+    {
+      "fila": 6,
+      "rut": "41785370-7",
+      "expediente": "63409-2022 CONCEPCIÓN",
+      "resultado": "Carga en core.casos_tgr",
+      "prueba": "caso válido"
+    },
+    {
+      "fila": 7,
+      "rut": "46447894-9",
+      "expediente": "3216-2021 SANTIAGO",
+      "resultado": "Carga en core.casos_tgr",
+      "prueba": "caso válido"
+    },
+    {
+      "fila": 8,
+      "rut": "47124378-7",
+      "expediente": "98950-2025 SANTIAGO",
+      "resultado": "Carga en core.casos_tgr",
+      "prueba": "caso válido"
+    },
+    {
+      "fila": 9,
+      "rut": "48336635-3",
+      "expediente": "48232-2026 SANTIAGO",
+      "resultado": "Carga en core.casos_tgr",
+      "prueba": "caso válido"
+    },
+    {
+      "fila": 10,
+      "rut": "49411608-1",
+      "expediente": "42638-2025 CONCEPCIÓN",
+      "resultado": "Carga en core.casos_tgr",
+      "prueba": "caso válido"
+    },
+    {
+      "fila": 11,
+      "rut": "47555346-2",
+      "expediente": "30550-2026 ANTOFAGASTA",
+      "resultado": "Carga en core.casos_tgr",
+      "prueba": "caso válido"
+    },
+    {
+      "fila": 12,
+      "rut": "41952938-9",
+      "expediente": "8933-2021 SAN BERNARDO",
+      "resultado": "Carga en core.casos_tgr",
+      "prueba": "caso válido"
+    },
+    {
+      "fila": 13,
+      "rut": "45836787-6",
+      "expediente": "73379-2019 SAN BERNARDO",
+      "resultado": "Carga en core.casos_tgr",
+      "prueba": "caso válido"
+    },
+    {
+      "fila": 14,
+      "rut": "48597149-1",
+      "expediente": "88586-2019 TALAGANTE",
+      "resultado": "Carga en core.casos_tgr",
+      "prueba": "caso válido"
+    },
+    {
+      "fila": 15,
+      "rut": "42621586-1",
+      "expediente": "45717-2020 CONCEPCIÓN",
+      "resultado": "Carga en core.casos_tgr",
+      "prueba": "caso válido"
+    },
+    {
+      "fila": 16,
+      "rut": "44481447-0",
+      "expediente": "70610-2025 SANTIAGO",
+      "resultado": "Carga en core.casos_tgr",
+      "prueba": "caso válido"
+    },
+    {
+      "fila": 17,
+      "rut": "48466183-9",
+      "expediente": "75439-2025 CONCEPCIÓN",
+      "resultado": "Carga en core.casos_tgr",
+      "prueba": "caso válido"
+    },
+    {
+      "fila": 18,
+      "rut": "47816099-2",
+      "expediente": "19468-2021 TALAGANTE",
+      "resultado": "Carga en core.casos_tgr",
+      "prueba": "caso válido"
+    },
+    {
+      "fila": 19,
+      "rut": "43913596-4",
+      "expediente": "19737-2024 SANTIAGO",
+      "resultado": "Carga en core.casos_tgr",
+      "prueba": "caso válido"
+    },
+    {
+      "fila": 20,
+      "rut": "48838905-K",
+      "expediente": "71653-2026 VALPARAÍSO",
+      "resultado": "Carga en core.casos_tgr",
+      "prueba": "caso válido"
+    },
+    {
+      "fila": 21,
+      "rut": "42728403-4",
+      "expediente": "90420-2022 CONCEPCIÓN",
+      "resultado": "Carga en core.casos_tgr",
+      "prueba": "caso válido"
+    },
+    {
+      "fila": 22,
+      "rut": "48402265-8",
+      "expediente": "65652-2019 ANTOFAGASTA",
+      "resultado": "Carga en core.casos_tgr",
+      "prueba": "caso válido"
+    },
+    {
+      "fila": 23,
+      "rut": "42915138-4",
+      "expediente": "12771-2019 VALPARAÍSO",
+      "resultado": "Carga en core.casos_tgr",
+      "prueba": "caso válido"
+    },
+    {
+      "fila": 24,
+      "rut": "45696056-1",
+      "expediente": "10176-2022 VALPARAÍSO",
+      "resultado": "Carga en core.casos_tgr",
+      "prueba": "caso válido"
+    },
+    {
+      "fila": 25,
+      "rut": "49010350-3",
+      "expediente": "6911-2021 TALAGANTE",
+      "resultado": "Carga en core.casos_tgr",
+      "prueba": "caso válido"
+    },
+    {
+      "fila": 26,
+      "rut": "46030084-0",
+      "expediente": "8150-2026 SANTIAGO",
+      "resultado": "Rechazado: llave inválida (Validar_Llave_Caso)",
+      "prueba": "DV no calza con el RUT"
+    },
+    {
+      "fila": 27,
+      "rut": "43746975-k",
+      "expediente": "94184-2026 VALPARAÍSO",
+      "resultado": "Carga en core.casos_tgr",
+      "prueba": "DV 'k' en minúscula (Normalizacion lo pasa a mayúscula)"
+    },
+    {
+      "fila": 28,
+      "rut": "43187648-5",
+      "expediente": "ROL SIN NÚMERO",
+      "resultado": "Rechazado: llave inválida (Validar_Llave_Caso)",
+      "prueba": "expediente sin formato número-año localidad"
+    },
+    {
+      "fila": 29,
+      "rut": "49008864-4",
+      "expediente": "27598-2019 CONCEPCIÓN",
+      "resultado": "Rechazado: llave inválida (Validar_Llave_Caso)",
+      "prueba": "sin fecha de ingreso"
+    },
+    {
+      "fila": 30,
+      "rut": "41923543-1",
+      "expediente": "52791-2019 TALAGANTE",
+      "resultado": "Rechazado: indicador distinto de SI/NO (Validar_Indicadores)",
+      "prueba": "indicador de múltiples roles inválido"
+    },
+    {
+      "fila": 31,
+      "rut": "41346427-7",
+      "expediente": "63148-2023 TALAGANTE",
+      "resultado": "Rechazado: indicador distinto de SI/NO (Validar_Indicadores)",
+      "prueba": "revisión manual vacía"
+    },
+    {
+      "fila": 32,
+      "rut": "42399373-1",
+      "expediente": "52833-2019 VALPARAÍSO",
+      "resultado": "Carga en core.casos_tgr",
+      "prueba": "'SÍ' con tilde"
+    },
+    {
+      "fila": 33,
+      "rut": "46565684-0",
+      "expediente": "48165-2025 ANTOFAGASTA",
+      "resultado": "Carga en core.casos_tgr",
+      "prueba": "OCR incompleto, marcado para revisión"
+    },
+    {
+      "fila": 34,
+      "rut": "49323111-1",
+      "expediente": "  1532 - 2024   valparaíso ",
+      "resultado": "Carga en core.casos_tgr",
+      "prueba": "espacios y minúsculas (Normalizacion los limpia)"
+    },
+    {
+      "fila": 35,
+      "rut": "46822128-4",
+      "expediente": "30237-2022 SANTIAGO",
+      "resultado": "Descartado: duplicado de RUT, DV, rol y fecha de ingreso (Detectar_Duplicados)",
+      "prueba": "copia exacta de la primera fila"
+    },
+    {
+      "fila": 36,
+      "rut": "49171079-9",
+      "expediente": "81329-2020 ANTOFAGASTA",
+      "resultado": "Descartado: duplicado de RUT, DV, rol y fecha de ingreso (Detectar_Duplicados)",
+      "prueba": "mismo caso reenviado en otro correo"
+    }
+  ]
+}

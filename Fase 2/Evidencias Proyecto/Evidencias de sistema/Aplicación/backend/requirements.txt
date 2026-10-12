@@ -11,6 +11,7 @@ pyodbc>=5.1
 # ETL y validaciones
 pandas>=2.2
 openpyxl>=3.1                # lectura de Excel
+python-docx>=1.1             # lectura de informes en Word (.docx)
 
 # Extracción de documentos (RF12)
 pdfplumber>=0.11             # tablas de PDF con texto

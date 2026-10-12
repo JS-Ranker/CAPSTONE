@@ -1,16 +1,33 @@
 import { useRef, useState } from 'react'
 import { subirDocumento } from '../api'
+import { formatearNumero } from '../formato'
 import { Icono } from './Icono'
 
-const EXTENSIONES = ['.xlsx', '.xls', '.csv', '.txt', '.pdf', '.jpg', '.jpeg', '.png']
+const EXTENSIONES = ['.xlsx', '.xls', '.csv', '.txt', '.docx', '.pdf', '.jpg', '.jpeg', '.png']
 const TAMANO_MAXIMO_MB = 20 // el backend es quien decide (TAMANO_MAXIMO_MB); esto solo evita subir algo que rechazará
 
 function revisarArchivo(archivo) {
   const extension = archivo.name.includes('.') ? archivo.name.slice(archivo.name.lastIndexOf('.')).toLowerCase() : ''
-  if (!EXTENSIONES.includes(extension)) return 'Formato no permitido. Use Excel, CSV, TXT, PDF o foto (JPG, PNG).'
+  if (!EXTENSIONES.includes(extension)) return 'Formato no permitido. Use Excel, CSV, TXT, Word, PDF o foto (JPG, PNG).'
   if (archivo.size === 0) return 'El archivo está vacío.'
   if (archivo.size > TAMANO_MAXIMO_MB * 1024 * 1024) return `El archivo supera los ${TAMANO_MAXIMO_MB} MB.`
   return null
+}
+
+// Mensaje tras la carga. Un CSV TGR pasa por el ETL en la misma petición y trae su resumen en `etl`.
+function resultadoCarga({ nombre_archivo: nombre, id_archivo: id, estado_archivo: estado, etl }) {
+  const lote = `${nombre}: informe #${id}`
+  if (etl?.error) return { tipo: 'error', mensaje: `${lote} recibido, pero no se cargó: ${etl.error}` }
+  if (etl) {
+    const { cargadas, rechazadas, duplicadas } = etl
+    return {
+      tipo: 'exito',
+      mensaje: `${lote} procesado: ${formatearNumero(cargadas)} casos cargados, ${formatearNumero(rechazadas)} `
+        + `rechazados y ${formatearNumero(duplicadas)} duplicados.`,
+    }
+  }
+  const siguiente = estado === 'Pendiente de Extracción' ? ' Leyendo el informe…' : ''
+  return { tipo: 'exito', mensaje: `${lote} creado.${siguiente}` }
 }
 
 export function CargaDocumento({ onCargado }) {
@@ -29,8 +46,7 @@ export function CargaDocumento({ onCargado }) {
     setEstado({ tipo: 'subiendo', mensaje: `Cargando ${archivo.name}…` })
     try {
       const documento = await subirDocumento(archivo)
-      const siguiente = documento.estado_archivo === 'Pendiente de Extracción' ? ' Leyéndolo con OCR…' : ''
-      setEstado({ tipo: 'exito', mensaje: `${documento.nombre_archivo}: lote #${documento.id_archivo} creado.${siguiente}` })
+      setEstado(resultadoCarga(documento))
       onCargado()
     } catch (error) {
       setEstado({ tipo: 'error', mensaje: `${archivo.name}: ${error.message}` })
@@ -59,7 +75,7 @@ export function CargaDocumento({ onCargado }) {
       >
         <span className="zona-carga__icono"><Icono nombre="subir" tamano={22} /></span>
         <p className="zona-carga__texto">Arrastre el archivo aquí</p>
-        <p className="zona-carga__ayuda">Excel, CSV, TXT, PDF o foto · hasta {TAMANO_MAXIMO_MB} MB</p>
+        <p className="zona-carga__ayuda">Excel, CSV, Word, PDF o foto · hasta {TAMANO_MAXIMO_MB} MB</p>
         <button
           type="button"
           className="boton boton--primario zona-carga__boton"
