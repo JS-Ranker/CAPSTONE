@@ -28,9 +28,9 @@ Proyecto **Capstone (APT)** de la carrera de Ingeniería en Informática — Duo
 
 ## 📌 Descripción
 
-**TTDH Automation** es una plataforma informática que automatiza el procesamiento de información de registros de deudores, desde su recepción —por correo electrónico, SFTP o carga web, en Excel, CSV, PDF, documentos escaneados o fotografías— y validación hasta el cruce con las bases de datos de la organización y la generación de reportes.
+**TTDH Automation** es una plataforma informática que automatiza el procesamiento de información de registros de deudores, desde su recepción —por correo electrónico, SFTP o carga web, en Excel, CSV, TXT, Word, PDF, documentos escaneados o fotografías— y validación hasta el cruce con las bases de datos de la organización y la generación de reportes.
 
-La solución incorpora un módulo de **extracción con OCR local (Tesseract)** que convierte los PDF, escaneos y fotografías a una plantilla estándar, y un proceso **ETL** capaz de trabajar con distintos formatos de archivos, aplicar reglas de validación y de negocio, detectar cambios respecto de procesos anteriores y mantener la trazabilidad de cada ejecución. Además, permite generar reportes parametrizables e integra un componente de **Inteligencia Artificial** para apoyar la detección de anomalías y sugerir nuevas validaciones.
+La solución incorpora un módulo de **extracción** que lee el informe de deudores en cualquiera de esos formatos (con **OCR local, Tesseract**, para escaneos y fotografías) y lo convierte en una fila por deudor, y un proceso **ETL** capaz de trabajar con distintos formatos de archivos, aplicar reglas de validación y de negocio, detectar cambios respecto de procesos anteriores y mantener la trazabilidad de cada ejecución. Además, permite generar reportes parametrizables e integra un componente de **Inteligencia Artificial** para apoyar la detección de anomalías y sugerir nuevas validaciones.
 
 ## 🎯 Problema que resuelve
 
@@ -50,24 +50,36 @@ El flujo general de la plataforma es el siguiente:
 
 ```mermaid
 flowchart LR
-    A["📥 Tesorería General<br/>de la República<br/>(correo, SFTP o web)"] --> R["📧 Recepción de<br/>documentos"]
-    R -->|"Excel / CSV / TXT"| B["⚙️ Proceso ETL"]
-    R -->|"PDF / escaneos / fotos"| X["🔎 Extracción OCR<br/>(Tesseract)"]
-    X -->|"plantilla estándar"| B
-    B --> C["🔍 Validaciones y<br/>reglas de negocio<br/>(RUT, duplicados, formatos)"]
-    C --> D["🗄️ Cruce con BD<br/>de Banco Genérico"]
-    D --> E["🕓 Trazabilidad y<br/>comparación histórica"]
-    E --> F["📊 Reportes<br/>parametrizables<br/>+ Análisis con IA"]
+    A["📥 Tesorería General<br/>de la República<br/>(correo, SFTP o web)"] --> R["📧 Recepción del<br/>informe de deudores"]
+    R --> X["🔎 Extracción<br/>(tablas y OCR local)"]
+    X -->|"un deudor por fila"| B["⚙️ ETL: validaciones y<br/>reglas de negocio<br/>(RUT, rol, duplicados, formatos)"]
+    X -.->|"informe que no cuadra"| M["🧑‍💼 Revisión manual<br/>(Bandeja de Excepciones)"]
+    B -.->|"datos dudosos o rechazados"| M
+    M -.->|"corregidos"| B
+    B --> D["🗄️ Cruce con clientes<br/>de Banco Genérico<br/>(saldos y regla 0,5 UTM)"]
+    D --> F["📊 Informe de respuesta a la TGR<br/>+ avisos a clientes<br/>+ análisis con IA"]
     F --> G["📈 Dashboard<br/>de monitoreo"]
 ```
 
-1. **Entrada:** la Tesorería General de la República envía periódicamente los documentos con los datos de los deudores a la casilla de correo institucional (también se aceptan SFTP y carga web), en Excel, CSV, TXT, PDF, documentos escaneados o fotografías.
-   - **Extracción (OCR/IA):** los PDF, escaneos y fotografías se convierten a una plantilla estándar mediante extracción de tablas y OCR local con Tesseract (sin enviar documentos a servicios externos); los registros con baja confianza se derivan a revisión manual.
-2. **Procesamiento (ETL):** la plataforma recibe los archivos y ejecuta un proceso que extrae, transforma y valida la información (RUT, duplicados, campos incompletos y formatos), aplicando las reglas de negocio definidas.
-3. **Cruce de datos:** la información validada se cruza con las bases de datos de Banco Genérico para identificar coincidencias, cambios e inconsistencias.
+1. **Entrada:** la Tesorería General de la República envía por correo institucional un **informe de deudores** (también se acepta SFTP y carga web) en Excel, CSV, TXT, Word, PDF, documento escaneado o fotografía. Cada informe trae varios deudores: RUT, nombre, ID de demanda, N° de resolución, monto solicitado, tipo de embargo, expediente, tesorería y fecha del oficio.
+   - **Extracción:** se lee la tabla del informe (directamente en Excel, CSV, TXT, Word y PDF con texto; con OCR local, Tesseract, en escaneos y fotografías, sin enviar documentos a servicios externos) y se verifican sus totales. Si el informe no cuadra, va completo a revisión manual; si un dato crítico (RUT, monto o expediente) se lee con menos de 90 % de confianza o falta un dato, el deudor se carga marcado para revisión (RN05).
+2. **Procesamiento (ETL):** cada deudor se valida y normaliza con las reglas definidas por el equipo (RUT y dígito verificador, formato del expediente, fechas, monto obligatorio y duplicados) y se carga como caso. Lo que no cumple queda rechazado con su motivo, y el analista lo corrige o descarta en la **Bandeja de Excepciones** (RF05, CU05).
+3. **Cruce de datos:** los casos se cruzan por RUT con los clientes de Banco Genérico. Si el saldo total de sus cuentas es menor a **0,5 UTM**, no se descuenta; si es mayor, se descuenta hasta cubrir la deuda (o todo el saldo, si no alcanza). Varias deudas de un mismo RUT se cubren de la más antigua a la más nueva.
 4. **Trazabilidad:** se registra cada ejecución, manteniendo el historial y la comparación entre procesos.
-5. **Salidas:** se generan reportes parametrizables y se aplica un componente de IA para detectar anomalías y sugerir validaciones.
+5. **Salidas:** se genera el informe de respuesta a la TGR (a quién se le descontó, a quién no y por qué), los avisos a los clientes afectados y reportes parametrizables; un componente de IA detecta anomalías y sugiere validaciones.
 6. **Monitoreo:** los resultados se visualizan en un dashboard de seguimiento.
+
+### Estado de desarrollo
+
+| Etapa | Estado |
+|---|---|
+| Recepción por correo, SFTP y carga web (RF01) | ✅ Implementada |
+| Extracción del informe en Excel, CSV, TXT, Word, PDF, escaneo y foto (RF02, RF12) | ✅ Implementada |
+| ETL con las reglas de validación (RF03), con trazabilidad por deudor | ✅ Implementado |
+| Bandeja de Excepciones para la revisión manual (RF05, CU05) | ✅ Implementada |
+| Cruce con clientes de Banco Genérico y regla de 0,5 UTM (RF04) | ⬜ Pendiente |
+| Informe de respuesta a la TGR, avisos a clientes y exportación (RF07, RF11) | ⬜ Pendiente |
+| Dashboard (RF06), IA (RF08), usuarios y roles (RF09) | ⬜ Pendiente |
 
 ## ✨ Características principales
 
@@ -138,14 +150,17 @@ CAPSTONE/
 │           │   │   │   ├── main.py       # API REST (endpoints /api/...)
 │           │   │   │   ├── config.py     # configuración desde backend/.env
 │           │   │   │   ├── db.py         # conexión a SQL Server
-│           │   │   │   └── modulos/      # recepcion, extraccion, etl, validaciones,
+│           │   │   │   └── modulos/      # recepcion, extraccion, etl, excepciones, validaciones,
 │           │   │   │                     # cruce, trazabilidad, ia, reportes
 │           │   │   ├── tests/            # pruebas con pytest
 │           │   │   ├── requirements.txt
 │           │   │   └── .env.example      # plantilla de configuración (copiar como .env)
-│           │   ├── frontend/         # React + Vite: dashboard y pantallas
-│           │   └── data/             # datos y documentos simulados (nunca datos reales)
-│           └── Base de datos/        # scripts SQL Server: base de datos, tablas y datos iniciales
+│           │   ├── frontend/         # React + Vite: Ingesta, Casos TGR y Bandeja de Excepciones
+│           │   └── data/
+│           │       ├── simulados/    # informes de deudores ficticios en todos los formatos + manifiesto
+│           │       └── muestra_tgr/  # CSV de muestra con el formato del ETL de Tomás
+│           └── Base de datos/        # scripts SQL Server (01-08 y los de Tomás) y el ETL original
+│                                     # en Pentaho (.ktr), que la aplicación reproduce en Python
 ├── Fase 3/
 ├── .gitignore
 └── README.md
@@ -180,11 +195,25 @@ sqlcmd -S localhost -E -C -f 65001 -i 02_tablas.sql
 sqlcmd -S localhost -E -C -f 65001 -i 03_datos_iniciales.sql
 sqlcmd -S localhost -E -C -f 65001 -i 04_recepcion.sql
 sqlcmd -S localhost -E -C -f 65001 -i 05_remitentes.sql
+sqlcmd -S localhost -E -C -f 65001 -i creacion_db.sql
+sqlcmd -S localhost -E -C -f 65001 -i recepcion_datos_input.sql
+sqlcmd -S localhost -E -C -f 65001 -i creacion_tablas.sql
+sqlcmd -S localhost -E -C -f 65001 -i 06_etl.sql
+sqlcmd -S localhost -E -C -f 65001 -i 07_revisiones.sql
+sqlcmd -S localhost -E -C -f 65001 -i 08_word.sql
 ```
 
 > Con SQL Server Express el servidor suele ser `localhost\SQLEXPRESS` en lugar de `localhost` (aquí y en `DB_SERVER` del `.env`).
 >
-> `02_tablas.sql` recrea las tablas desde cero: borra los datos existentes. Después de ejecutarlo hay que volver a ejecutar `03`, `04` y `05`. `04_recepcion.sql` agrega a `Archivos_TGR` los datos del correo y la huella del archivo, y `05_remitentes.sql` crea la tabla de remitentes autorizados; ninguno de los dos borra datos y se pueden ejecutar más de una vez.
+> `02_tablas.sql` recrea las tablas desde cero: borra los datos existentes. Después de ejecutarlo hay que volver a ejecutar todos los scripts siguientes. El resto no borra datos y se puede ejecutar más de una vez:
+>
+> | Script | Qué crea |
+> |---|---|
+> | `04_recepcion.sql` / `05_remitentes.sql` | Datos del correo y huella del archivo en `Archivos_TGR`; remitentes autorizados |
+> | `creacion_db.sql`, `recepcion_datos_input.sql`, `creacion_tablas.sql` | Modelo de casos de Tomás: esquemas `stg`, `core` y `etl`, `stg.casos_tgr` y `core.casos_tgr` |
+> | `06_etl.sql` | `etl.ejecuciones` y `etl.resultados`: resultado del ETL por deudor (cargado, rechazado con motivo o duplicado) |
+> | `07_revisiones.sql` | `etl.revisiones`: historial de la revisión manual (Bandeja de Excepciones) |
+> | `08_word.sql` | Agrega el tipo `Word` a `Archivos_TGR` |
 
 **3. Backend (Python)**
 
@@ -202,15 +231,24 @@ uvicorn app.main:app --reload      # API en http://localhost:8000 (documentació
 
 ```bash
 cd "Fase 2/Evidencias Proyecto/Evidencias de sistema/Aplicación/frontend"
-npm install
+npm ci
 npm run dev                        # aplicación en http://localhost:5173
 ```
 
-La página inicial es la **Gestión de ingesta**: carga de documentos, canales de recepción (botones "Leer correo ahora" y "Forzar lectura SFTP", y administración de remitentes autorizados) y la tabla de lotes recientes. Al pie del menú se muestra el estado de la conexión con la API y con la base de datos.
+La aplicación tiene tres pantallas (al pie del menú se ve si la API y la base de datos están conectadas):
+
+| Pantalla | Para qué sirve |
+|---|---|
+| **Ingesta** | Cargar informes; recepción automática por correo y SFTP (con remitentes autorizados); lista de **Informes recibidos** con su estado y cuántos deudores quedan por revisar. El detalle de cada informe muestra el documento original, el resultado del ETL y su historial. |
+| **Casos TGR** | Casos cargados (búsqueda por RUT, nombre o rol, y filtro de revisión manual) y filas rechazadas con el estado de su revisión. |
+| **Excepciones** | Bandeja de revisión manual: completar y regularizar los casos dudosos, corregir y cargar o descartar las filas rechazadas, siempre con observación e historial. |
+
+Casos TGR y Excepciones se pueden filtrar por **N° de informe**, para ver todos los deudores de un informe (por ejemplo `http://localhost:5173/#/casos?informe=808`).
 
 **5. Recepción de documentos (RF01)**
 
-- **Carga web:** `POST /api/recepcion/archivos` (campo `archivo`). Los lotes recientes están en `GET /api/recepcion/archivos`. Se pueden probar desde `http://localhost:8000/docs`.
+- **Carga web:** `POST /api/recepcion/archivos` (campo `archivo`). Los informes recibidos están en `GET /api/recepcion/archivos`. El resto de la API (casos, rechazados, excepciones, ETL) se puede probar desde `http://localhost:8000/docs`.
+- **Extracción y ETL:** todo informe recibido queda "Pendiente de Extracción" y se procesa en segundo plano; si se lee bien, sus deudores pasan al ETL en la misma operación y el informe queda "Procesado". El CSV `resultado_tgr_*.csv` del formato de Tomás (ya extraído) va directo al ETL.
 - **Correo y SFTP:** se revisan con un script, pensado para el Programador de tareas de Windows (por ejemplo, cada 5 minutos):
 
   ```bash
@@ -219,7 +257,7 @@ La página inicial es la **Gestión de ingesta**: carga de documentos, canales d
   python -m scripts.revisar_canales             # correo, directorio SFTP y extracción de PDF/imágenes
   ```
 
-  La casilla de correo y el directorio SFTP se configuran en `backend/.env` (ver `.env.example`); los remitentes autorizados se administran desde la pantalla de ingesta (botón "Remitentes autorizados"). Los originales se guardan en `Aplicación/data/entrada/`, que está excluida del repositorio.
+  La casilla de correo y el directorio SFTP se configuran en `backend/.env` (ver `.env.example`); los remitentes autorizados se administran desde la pantalla de Ingesta (botón "Editar" junto a "Remitentes"). Los originales se guardan en `Aplicación/data/entrada/`, que está excluida del repositorio.
 
 > **Importante:** no subir al repositorio datos reales de deudores ni credenciales. Utilizar datos de prueba o simulados y un archivo `.gitignore` adecuado.
 

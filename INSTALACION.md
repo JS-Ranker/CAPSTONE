@@ -81,20 +81,35 @@ Los scripts se ejecutan **en orden** y desde su carpeta. Usan autenticación de 
 
 ```powershell
 cd "Fase 2\Evidencias Proyecto\Evidencias de sistema\Base de datos"
+
+# Base, tablas principales, roles, recepción y remitentes
 sqlcmd -S $SERVIDOR -E -C -f 65001 -i 01_crear_base_datos.sql
 sqlcmd -S $SERVIDOR -E -C -f 65001 -i 02_tablas.sql
 sqlcmd -S $SERVIDOR -E -C -f 65001 -i 03_datos_iniciales.sql
 sqlcmd -S $SERVIDOR -E -C -f 65001 -i 04_recepcion.sql
 sqlcmd -S $SERVIDOR -E -C -f 65001 -i 05_remitentes.sql
+
+# Modelo de casos de Tomás: esquemas stg/core/etl, stg.casos_tgr y core.casos_tgr
+sqlcmd -S $SERVIDOR -E -C -f 65001 -i creacion_db.sql
+sqlcmd -S $SERVIDOR -E -C -f 65001 -i recepcion_datos_input.sql
+sqlcmd -S $SERVIDOR -E -C -f 65001 -i creacion_tablas.sql
+
+# Seguimiento del ETL, revisión manual (Bandeja de Excepciones) e informes en Word
+sqlcmd -S $SERVIDOR -E -C -f 65001 -i 06_etl.sql
+sqlcmd -S $SERVIDOR -E -C -f 65001 -i 07_revisiones.sql
+sqlcmd -S $SERVIDOR -E -C -f 65001 -i 08_word.sql
 ```
 
-Comprobar que quedó bien (debe mostrar **4**, los roles iniciales):
+Comprobar que quedó bien. La primera consulta debe mostrar **4** (los roles iniciales) y la segunda, estas **5** tablas: `core.casos_tgr`, `etl.ejecuciones`, `etl.resultados`, `etl.revisiones` y `stg.casos_tgr`.
 
 ```powershell
 sqlcmd -S $SERVIDOR -E -C -Q "SELECT COUNT(*) FROM TTDH_Automation.dbo.Roles"
+sqlcmd -S $SERVIDOR -E -C -d TTDH_Automation -Q "SELECT s.name + '.' + t.name FROM sys.tables t JOIN sys.schemas s ON s.schema_id = t.schema_id WHERE s.name IN ('stg','core','etl') ORDER BY 1"
 ```
 
-> **Cuidado:** `02_tablas.sql` borra y recrea todas las tablas. Si lo vuelves a ejecutar, después hay que correr de nuevo `03`, `04` y `05`. Los scripts `04` y `05` no borran datos y se pueden ejecutar las veces que quieras.
+> **Cuidado:** `02_tablas.sql` borra y recrea las tablas principales. Si lo vuelves a ejecutar, después hay que correr de nuevo todos los scripts que vienen después. Los demás scripts (`03` en adelante, los de Tomás, `06`, `07` y `08`) no borran datos y se pueden ejecutar las veces que quieras.
+>
+> Los archivos `.ktr` de esta carpeta son el ETL original de Tomás en Pentaho. **No hace falta Pentaho**: la aplicación ejecuta las mismas reglas en Python (`backend/app/modulos/etl/`).
 
 Vuelve a la raíz del repositorio:
 
@@ -149,7 +164,7 @@ Lo demás (`IMAP_*`, `SFTP_*`) puede quedar como está: si `IMAP_SERVIDOR` va va
 python -m pytest
 ```
 
-Tarda unos 3 minutos (las pruebas de OCR son lentas). Todas las pruebas deben pasar. Si falla `test_conexion_base_datos` o hay pruebas **skipped** con el mensaje *"SQL Server no disponible"*, el backend no logra conectarse a la base de datos: revisa `DB_SERVER` y `DB_DRIVER` en el `.env`.
+Tarda unos 2 o 3 minutos (las pruebas de OCR son lentas). Todas las pruebas deben pasar. Si falla `test_conexion_base_datos` o hay pruebas **skipped** con el mensaje *"SQL Server no disponible"*, el backend no logra conectarse a la base de datos: revisa `DB_SERVER` y `DB_DRIVER` en el `.env`. Si se saltan con *"Falta la tabla etl..."* o *"Falta ejecutar..."*, falta algún script del paso 4.
 
 ```powershell
 uvicorn app.main:app --reload
@@ -171,7 +186,7 @@ npm run dev
 
 (`npm ci` instala exactamente las versiones del `package-lock.json`, así todos tenemos las mismas.)
 
-Abre <http://localhost:5173>. Se muestra la pantalla **Gestión de Ingesta**.
+Abre <http://localhost:5173>. Se muestra la pantalla **Ingesta de documentos TGR**; el menú tiene **Ingesta**, **Casos TGR** y **Excepciones**.
 
 ---
 
@@ -182,7 +197,8 @@ Abre <http://localhost:5173>. Se muestra la pantalla **Gestión de Ingesta**.
 | <http://localhost:8000/api/health> | `{"estado":"ok", ...}` |
 | <http://localhost:8000/api/health/db> | `{"estado":"ok","base_datos":"TTDH_Automation","roles":4}` |
 | <http://localhost:5173> | Al pie del menú, la API y la base de datos aparecen conectadas. |
-| Cargar un archivo de prueba | Arrastra `Aplicación\data\simulados\estructurados\02_nomina_valida.csv` a la zona de carga: debe aparecer en la tabla de lotes. |
+| Cargar un informe de prueba | Arrastra `Aplicación\data\simulados\estructurados\04_informe_casos_borde.xlsx` a la zona de carga. En unos segundos aparece en **Informes recibidos** como **Procesado**, con **8** deudores por revisar. |
+| Revisar sus deudores | Haz clic en ese **8**: se abre **Excepciones** filtrada por ese informe. En **Casos TGR**, escribe el N° del informe para ver sus 20 casos cargados y sus 7 filas rechazadas. |
 
 Para probar con otros archivos usa **solo** los de `Aplicación\data\simulados\` (su README explica qué prueba cada uno). **Nunca** cargues datos reales de deudores.
 
@@ -213,7 +229,7 @@ npm ci                              # solo si cambió package-lock.json
 npm run dev
 ```
 
-Si después de un `git pull` aparece un script nuevo en `Base de datos\` (por ejemplo `06_...sql`), ejecútalo como en el paso 4. Antes de volver a correr `02_tablas.sql`, recuerda que borra todo.
+Si después de un `git pull` aparece un script nuevo en `Base de datos\` (por ejemplo `09_...sql`), ejecútalo como en el paso 4. Antes de volver a correr `02_tablas.sql`, recuerda que borra todo.
 
 Para detener la API o la web: `Ctrl + C` en su terminal.
 
@@ -226,9 +242,11 @@ Para detener la API o la web: `Ctrl + C` en su terminal.
 | `python` abre la Microsoft Store o dice *"no se encontró Python"* | Python no quedó en el PATH. Reinstálalo marcando **"Add python.exe to PATH"**, y en *Configuración → Aplicaciones → Alias de ejecución de aplicaciones* desactiva `python.exe` y `python3.exe`. Abre una PowerShell nueva. |
 | `sqlcmd` no se reconoce | Cierra y abre PowerShell después de instalarlo. Si sigue igual, reinstálalo con `winget install Microsoft.Sqlcmd`. |
 | `sqlcmd` dice *"Login timeout expired"* o *"server was not found"* | Nombre de servidor incorrecto o servicio detenido. Revisa el paso 3 (¿es `localhost\SQLEXPRESS`?). |
-| `/api/health/db` responde **503** o las pruebas salen *skipped* | El backend no se conecta a SQL Server o faltan las tablas. Revisa `DB_SERVER` y `DB_DRIVER` en `backend\.env` (el nombre del driver debe coincidir exactamente con el instalado; para verlo: `Get-OdbcDriver -Name "*SQL Server*"`) y que hayas ejecutado los 5 scripts del paso 4. |
+| `/api/health/db` responde **503** o las pruebas salen *skipped* | El backend no se conecta a SQL Server o faltan las tablas. Revisa `DB_SERVER` y `DB_DRIVER` en `backend\.env` (el nombre del driver debe coincidir exactamente con el instalado; para verlo: `Get-OdbcDriver -Name "*SQL Server*"`) y que hayas ejecutado todos los scripts del paso 4. |
 | Error *"Data source name not found and no default driver specified"* | El `DB_DRIVER` del `.env` no coincide con el driver instalado. |
-| Las pruebas se saltan con *"Falta ejecutar 'Base de datos/04_recepcion.sql'"* (o `05`) | Ejecuta ese script como en el paso 4. |
+| Las pruebas se saltan con *"Falta ejecutar 'Base de datos/04_recepcion.sql'"* (o `05`) o *"Falta la tabla etl..."* | Ejecuta los scripts que faltan como en el paso 4 (los de Tomás y luego `06`, `07` y `08`). |
+| Al cargar un informe queda en **Error de Extracción** | Es esperable si el informe no cuadra (totales distintos al detalle, faltan columnas, archivo dañado). Abre **Ver detalle** del informe: el motivo exacto aparece arriba y en el historial. |
+| Al cargar un `.docx` la web dice *"Ocurrió un error en el servidor"* | Falta ejecutar `08_word.sql` (paso 4): la base aún no acepta el tipo Word. Si la terminal de la API muestra *"No module named 'docx'"*, ejecuta `pip install -r requirements.txt`. |
 | *"No se encontró Tesseract"* | `TESSERACT_CMD` en el `.env` no apunta a `tesseract.exe`. |
 | *"Tesseract no tiene instalado el idioma 'spa'"* | Reinstala Tesseract marcando *Additional language data → Spanish*. |
 | `Activate.ps1` *"no se puede cargar… la ejecución de scripts está deshabilitada"* | `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` y vuelve a activar. |
