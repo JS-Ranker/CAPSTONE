@@ -18,16 +18,16 @@ export function DetalleLote({ archivo, onCerrar }) {
         <>
           <div className="dialogo__cabecera">
             <h2 id="titulo-detalle">Lote #{archivo.id_archivo}</h2>
-            <button type="button" className="boton boton--secundario" onClick={() => dialogo.current.close()}>
+            <button type="button" className="boton boton--compacto" onClick={() => dialogo.current.close()}>
               Cerrar
             </button>
           </div>
           <dl className="lista-datos">
             <div><dt>Archivo</dt><dd className="nombre">{archivo.nombre_archivo}</dd></div>
             <div><dt>Estado</dt><dd><EstadoArchivo estado={archivo.estado_archivo} /></dd></div>
-            <div><dt>Tipo de documento</dt><dd>{archivo.tipo_documento}</dd></div>
-            <div><dt>Canal de origen</dt><dd>{archivo.canal_origen}</dd></div>
-            <div><dt>Fecha de recepción</dt><dd>{formatearFecha(archivo.fecha_recepcion)}</dd></div>
+            <div><dt>Tipo</dt><dd>{archivo.tipo_documento}</dd></div>
+            <div><dt>Canal</dt><dd>{archivo.canal_origen}</dd></div>
+            <div><dt>Recibido</dt><dd>{formatearFecha(archivo.fecha_recepcion)}</dd></div>
             {archivo.canal_origen === 'Correo' && (
               <>
                 <div><dt>Remitente</dt><dd className="nombre">{archivo.remitente}</dd></div>
@@ -40,7 +40,7 @@ export function DetalleLote({ archivo, onCerrar }) {
           </dl>
           {archivo.estado_archivo === 'Error de Extracción' && (
             <p className="aviso aviso--error">
-              El documento no se pudo leer con suficiente confianza o sus totales no cuadran: debe revisarse a mano.
+              No se pudo leer bien o los totales no cuadran. Revíselo a mano.
             </p>
           )}
         </>

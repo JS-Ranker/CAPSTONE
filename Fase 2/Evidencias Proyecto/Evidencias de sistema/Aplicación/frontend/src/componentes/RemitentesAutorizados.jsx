@@ -31,6 +31,7 @@ export function RemitentesAutorizados({ abierto, onCerrar, onCambio }) {
       setAviso({ tipo: 'inactivo', mensaje: '' })
       setErrorCorreo('')
       elemento.showModal()
+      campoCorreo.current.focus() // se abre para agregar: el foco va directo al correo
       cargar()
     }
     if (!abierto && elemento.open) elemento.close()
@@ -80,11 +81,11 @@ export function RemitentesAutorizados({ abierto, onCerrar, onCambio }) {
     <dialog ref={dialogo} className="dialogo" aria-labelledby="titulo-remitentes" onClose={onCerrar}>
       <div className="dialogo__cabecera">
         <h2 id="titulo-remitentes">Remitentes autorizados</h2>
-        <button type="button" className="boton boton--secundario" onClick={() => dialogo.current.close()}>
+        <button type="button" className="boton boton--compacto" onClick={() => dialogo.current.close()}>
           Cerrar
         </button>
       </div>
-      <p className="nota">Solo se registran los adjuntos de correos enviados desde estas direcciones.</p>
+      <p className="nota">Solo se leen los correos de estas direcciones.</p>
 
       <form className="formulario" onSubmit={agregar} noValidate>
         <div className="campo">
@@ -116,18 +117,18 @@ export function RemitentesAutorizados({ abierto, onCerrar, onCambio }) {
             maxLength={150}
           />
         </div>
-        <button type="submit" className="boton" disabled={ocupado}>Agregar</button>
+        <button type="submit" className="boton boton--primario" disabled={ocupado}>Agregar</button>
       </form>
 
       <p className={`aviso aviso--${aviso.tipo}`} role="status" aria-live="polite">{aviso.mensaje}</p>
 
       {errorLista && (
         <p className="aviso aviso--error">
-          No se pudo obtener la lista: {errorLista} <button type="button" className="enlace" onClick={cargar}>Reintentar</button>
+          No se pudo cargar la lista: {errorLista} <button type="button" className="enlace" onClick={cargar}>Reintentar</button>
         </p>
       )}
       {remitentes && remitentes.length === 0 && (
-        <p className="vacio">Aún no hay remitentes autorizados: los correos recibidos se ignoran.</p>
+        <p className="vacio">Sin remitentes: no se leerá ningún correo.</p>
       )}
       {remitentes?.length > 0 && (
         <ul className="remitentes" aria-label="Remitentes autorizados">
@@ -139,7 +140,7 @@ export function RemitentesAutorizados({ abierto, onCerrar, onCambio }) {
               </div>
               <button
                 type="button"
-                className="boton boton--secundario"
+                className="boton boton--compacto"
                 disabled={ocupado}
                 onClick={() => quitar(remitente)}
                 aria-label={`Quitar ${remitente.correo}`}

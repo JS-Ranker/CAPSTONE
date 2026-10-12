@@ -243,6 +243,17 @@ def test_api_carga_y_consulta_un_documento(cliente):
 
     lista = cliente.get("/api/recepcion/archivos", params={"limite": 5}).json()
     assert lista["archivos"][0]["id_archivo"] == creado["id_archivo"] and lista["limite"] == 5
+    assert (lista["total"], lista["con_error"]) == (1, 0)
+
+
+def test_api_cuenta_los_documentos_con_error(cliente, conexion, almacen):
+    recibir_documento(conexion, b"%PDF-1.4 roto", "roto.pdf", WEB, almacen=almacen, tamano_maximo=MB)
+    procesar_pendientes(conexion, almacen)  # el PDF dañado queda en 'Error de Extracción'
+    cargar(cliente, "01_nomina_valida.xlsx")
+
+    lista = cliente.get("/api/recepcion/archivos").json()
+
+    assert (lista["total"], lista["con_error"]) == (2, 1)
 
 
 def test_api_programa_la_extraccion_de_un_pdf(cliente):

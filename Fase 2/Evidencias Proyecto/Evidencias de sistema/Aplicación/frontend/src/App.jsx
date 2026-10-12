@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import './App.css'
 import { CargaDocumento } from './componentes/CargaDocumento'
 import { DetalleLote } from './componentes/DetalleLote'
+import { Icono } from './componentes/Icono'
 import { RecepcionAutomatica } from './componentes/RecepcionAutomatica'
 import { TablaLotes } from './componentes/TablaLotes'
 
@@ -10,14 +11,15 @@ const CHEQUEOS = [
   { id: 'db', nombre: 'Base de datos', url: '/api/health/db' },
 ]
 
-// Módulos del sistema (mockups v1 a v4). Solo la ingesta está construida; el resto se muestra como próximo.
-const MODULOS = [
-  { nombre: 'Ingesta de Archivos', activo: true },
-  { nombre: 'Dashboard' },
-  { nombre: 'Bandeja de Excepciones' },
-  { nombre: 'Reportes e IA' },
+// Módulos del sistema. Solo la ingesta está construida; el resto va agrupado bajo "Próximamente".
+const MODULOS = [{ nombre: 'Ingesta', icono: 'ingesta', activo: true }]
+const PROXIMOS = [
+  { nombre: 'Dashboard', icono: 'dashboard' },
+  { nombre: 'Excepciones', icono: 'excepciones' },
+  { nombre: 'Reportes e IA', icono: 'reportes' },
+  { nombre: 'Auditoría', icono: 'bitacora' },
+  { nombre: 'Usuarios y roles', icono: 'usuarios' },
 ]
-const ADMINISTRACION = [{ nombre: 'Bitácora de Auditoría' }, { nombre: 'Usuarios y Roles' }]
 
 async function consultar(url) {
   try {
@@ -47,7 +49,9 @@ function EstadoEntorno() {
         const texto = ok === undefined ? 'verificando…' : ok ? 'conectada' : 'sin conexión'
         return (
           <li key={id} className={ok === undefined ? 'pendiente' : ok ? 'ok' : 'error'}>
-            <span className="indicador" aria-hidden="true" /> {nombre}: {texto}
+            <span className="indicador" aria-hidden="true" />
+            <span>{nombre}</span>
+            <span className="entorno__estado">{texto}</span>
           </li>
         )
       })}
@@ -55,16 +59,19 @@ function EstadoEntorno() {
   )
 }
 
+// Los módulos aún no construidos no son enlaces: se muestran atenuados para no parecer funcionales.
 function Navegacion({ elementos }) {
   return (
     <ul className="menu">
-      {elementos.map(({ nombre, activo }) => (
+      {elementos.map(({ nombre, icono, activo }) => (
         <li key={nombre}>
           {activo ? (
-            <span className="menu__item menu__item--activo" aria-current="page">{nombre}</span>
+            <span className="menu__item menu__item--activo" aria-current="page">
+              <Icono nombre={icono} /> {nombre}
+            </span>
           ) : (
             <span className="menu__item menu__item--proximo">
-              {nombre} <span className="menu__proximo">Próximamente</span>
+              <Icono nombre={icono} /> {nombre}
             </span>
           )}
         </li>
@@ -83,21 +90,23 @@ function App() {
     <div className="aplicacion">
       <aside className="barra-lateral">
         <div className="marca">
-          <p className="marca__nombre">TTDH Automation</p>
-          <p className="marca__organizacion">Banco Genérico</p>
+          <span className="marca__simbolo" aria-hidden="true">TT</span>
+          <div>
+            <p className="marca__nombre">TTDH Automation</p>
+            <p className="marca__organizacion">Banco Genérico</p>
+          </div>
         </div>
         <nav aria-label="Módulos">
           <Navegacion elementos={MODULOS} />
-          <p className="menu__grupo">Administración</p>
-          <Navegacion elementos={ADMINISTRACION} />
+          <p className="menu__grupo">Próximamente</p>
+          <Navegacion elementos={PROXIMOS} />
         </nav>
         <EstadoEntorno />
       </aside>
 
       <div className="principal">
         <header className="encabezado">
-          <p className="migas">Inicio / Ingesta</p>
-          <h1>Gestión de Ingesta de Documentos TGR</h1>
+          <h1>Ingesta de documentos TGR</h1>
         </header>
         <main className="contenido">
           <div className="fila">

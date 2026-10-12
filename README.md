@@ -206,7 +206,7 @@ npm install
 npm run dev                        # aplicación en http://localhost:5173
 ```
 
-La página inicial es la **Gestión de Ingesta** (mockup `v1_ingesta`): carga de documentos, estado de la recepción automática (botones "Leer correo ahora" y "Forzar lectura SFTP") y la tabla de lotes recientes. Al pie del menú se muestra el estado de la conexión con la API y con la base de datos.
+La página inicial es la **Gestión de ingesta**: carga de documentos, canales de recepción (botones "Leer correo ahora" y "Forzar lectura SFTP", y administración de remitentes autorizados) y la tabla de lotes recientes. Al pie del menú se muestra el estado de la conexión con la API y con la base de datos.
 
 **5. Recepción de documentos (RF01)**
 

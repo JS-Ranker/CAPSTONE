@@ -15,6 +15,7 @@ from sqlalchemy import Connection, text
 
 from ...config import settings
 from ...db import engine, transaccion
+from ..extraccion.plantilla import ERROR_EXTRACCION
 from .correo import REVISION_CORREO, Buzon, conectar_imap, revisar_buzon
 from .pendientes import buscar_pendiente, extraer_pendiente, procesar_pendientes
 from .registro import (
@@ -133,14 +134,18 @@ def listar_archivos(
 ):
     """Lotes recientes (CU02 paso 7), del más nuevo al más antiguo."""
     with transaccion(conexion):
-        total = conexion.execute(text("SELECT COUNT(*) FROM dbo.Archivos_TGR")).scalar_one()
+        total, con_error = conexion.execute(text(
+            "SELECT COUNT(*), COUNT(CASE WHEN estado_archivo IN (:error_extraccion, :error) THEN 1 END) "
+            "FROM dbo.Archivos_TGR"
+        ), {"error_extraccion": ERROR_EXTRACCION, "error": "Error"}).one()
         filas = conexion.execute(
             text(f"SELECT {COLUMNAS_PUBLICAS} FROM dbo.Archivos_TGR "
                  "ORDER BY fecha_recepcion DESC, id_archivo DESC "
                  "OFFSET :desplazamiento ROWS FETCH NEXT :limite ROWS ONLY"),
             {"desplazamiento": desplazamiento, "limite": limite},
         ).mappings().all()
-    return {"total": total, "limite": limite, "desplazamiento": desplazamiento, "archivos": [dict(f) for f in filas]}
+    return {"total": total, "con_error": con_error, "limite": limite, "desplazamiento": desplazamiento,
+            "archivos": [dict(f) for f in filas]}
 
 
 @router.get("/archivos/{id_archivo}")

@@ -24,18 +24,32 @@ export function TablaLotes({ version, onVerDetalle, onActualizar }) {
   }, [hayPendientes, recargar])
 
   return (
-    <section className="tarjeta" aria-labelledby="titulo-lotes">
+    <section className="tarjeta tarjeta--lotes" aria-labelledby="titulo-lotes">
       <div className="tarjeta__cabecera">
-        <h2 id="titulo-lotes">Lotes recientes</h2>
+        <div>
+          <h2 id="titulo-lotes">Lotes recientes</h2>
+          {datos && (
+            <p className="nota">
+              {formatearNumero(datos.total)} {datos.total === 1 ? 'documento' : 'documentos'}
+              {datos.con_error > 0 && (
+                <span className="nota__error">
+                  {' · '}{formatearNumero(datos.con_error)} con error
+                </span>
+              )}
+            </p>
+          )}
+        </div>
         <div className="actualizacion">
-          {actualizadoEn && (
-            <span className="nota" role="status" aria-live="polite">
-              Actualizado a las {hora.format(actualizadoEn)}
+          {/* Sin live region: mientras hay OCR en curso se actualiza cada 4 s y anunciaría la hora una y otra vez */}
+          {(cargando || actualizadoEn) && (
+            <span className="nota">
+              {cargando ? 'Actualizando…' : `Actualizado ${hora.format(actualizadoEn)}`}
             </span>
           )}
-          {/* Actualiza toda la pantalla: esta tabla y el panel de recepción automática */}
-          <button type="button" className="boton boton--secundario" onClick={onActualizar} disabled={cargando}>
-            {cargando ? 'Actualizando…' : 'Actualizar'}
+          {/* Actualiza toda la pantalla: esta tabla y el panel de recepción automática.
+              No se deshabilita: un botón deshabilitado con el foco encima lo pierde. Repetirlo solo reinicia la petición. */}
+          <button type="button" className="boton boton--compacto" onClick={onActualizar}>
+            Actualizar
           </button>
         </div>
       </div>
@@ -46,7 +60,7 @@ export function TablaLotes({ version, onVerDetalle, onActualizar }) {
         </p>
       )}
       {!error && datos && archivos.length === 0 && (
-        <p className="vacio">Aún no se ha recibido ningún documento. Cargue uno arriba o lea la casilla de correo.</p>
+        <p className="vacio">Aún no hay documentos. Cargue uno o lea el correo.</p>
       )}
 
       {archivos.length > 0 && (
@@ -54,10 +68,10 @@ export function TablaLotes({ version, onVerDetalle, onActualizar }) {
           <table className="tabla">
             <thead>
               <tr>
-                <th scope="col">ID Lote</th>
-                <th scope="col">Nombre de archivo</th>
-                <th scope="col">Origen</th>
-                <th scope="col">Fecha de recepción</th>
+                <th scope="col">Lote</th>
+                <th scope="col">Archivo</th>
+                <th scope="col">Canal</th>
+                <th scope="col">Recibido</th>
                 <th scope="col" className="numero">Registros</th>
                 <th scope="col" className="numero">Confianza OCR</th>
                 <th scope="col">Estado</th>
@@ -75,7 +89,7 @@ export function TablaLotes({ version, onVerDetalle, onActualizar }) {
                   <td className="numero">{formatearPorcentaje(archivo.confianza_extraccion)}</td>
                   <td><EstadoArchivo estado={archivo.estado_archivo} /></td>
                   <td>
-                    <button type="button" className="boton boton--secundario" onClick={() => onVerDetalle(archivo)}>
+                    <button type="button" className="boton boton--compacto boton--fantasma" onClick={() => onVerDetalle(archivo)}>
                       Ver detalle<span className="oculto"> de {archivo.nombre_archivo}</span>
                     </button>
                   </td>
@@ -86,18 +100,43 @@ export function TablaLotes({ version, onVerDetalle, onActualizar }) {
         </div>
       )}
 
+      {/* En una tarjeta angosta la tabla escondería Estado y Ver detalle tras un scroll horizontal:
+          se muestra esta lista en su lugar (el CSS deja visible solo una de las dos). */}
+      {archivos.length > 0 && (
+        <ul className="lotes-lista" aria-label="Lotes recientes">
+          {archivos.map((archivo) => (
+            <li key={archivo.id_archivo} className="lotes-lista__item">
+              <div className="lotes-lista__cabecera">
+                <span className="nombre lotes-lista__nombre">{archivo.nombre_archivo}</span>
+                <EstadoArchivo estado={archivo.estado_archivo} />
+              </div>
+              <p className="nota">
+                <span className="id">#{archivo.id_archivo}</span> · {archivo.canal_origen} · {formatearFecha(archivo.fecha_recepcion)}
+              </p>
+              <dl className="lotes-lista__datos">
+                <div><dt>Registros</dt><dd>{formatearNumero(archivo.total_registros)}</dd></div>
+                <div><dt>Confianza OCR</dt><dd>{formatearPorcentaje(archivo.confianza_extraccion)}</dd></div>
+              </dl>
+              <button type="button" className="boton boton--compacto lotes-lista__boton" onClick={() => onVerDetalle(archivo)}>
+                Ver detalle<span className="oculto"> de {archivo.nombre_archivo}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+
       {paginas > 1 && (
         <nav className="paginacion" aria-label="Páginas de lotes">
-          <button type="button" className="boton boton--secundario" disabled={pagina === 0} onClick={() => setPagina(pagina - 1)}>
+          <button type="button" className="boton boton--compacto" disabled={pagina === 0} onClick={() => setPagina(pagina - 1)}>
             Anterior
           </button>
           <span>Página {pagina + 1} de {paginas}</span>
-          <button type="button" className="boton boton--secundario" disabled={pagina + 1 >= paginas} onClick={() => setPagina(pagina + 1)}>
+          <button type="button" className="boton boton--compacto" disabled={pagina + 1 >= paginas} onClick={() => setPagina(pagina + 1)}>
             Siguiente
           </button>
         </nav>
       )}
-      {hayPendientes && <p className="nota">Hay documentos convirtiéndose con OCR: la tabla se actualiza sola.</p>}
+      {hayPendientes && <p className="nota">Lectura OCR en curso: la tabla se actualiza sola.</p>}
     </section>
   )
 }

@@ -1,10 +1,15 @@
+/* Base: tipografía del sistema (Segoe UI en los equipos Windows del banco), sin fuentes externas. */
 :root {
-  font-family: system-ui, 'Segoe UI', Roboto, Arial, sans-serif;
+  color-scheme: light;
+  font-family: 'Segoe UI', system-ui, -apple-system, Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 100%;
   line-height: 1.5;
-  color: #1a1a1a;
-  background-color: #f7f9fc;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 body {
   margin: 0;
 }
+
+button, input { font: inherit; }

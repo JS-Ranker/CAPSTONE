@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { revisarCorreo, revisarSftp } from '../api'
 import { formatearFecha, formatearNumero } from '../formato'
 import { usePeticion } from '../usePeticion'
+import { Icono } from './Icono'
 import { RemitentesAutorizados } from './RemitentesAutorizados'
 
 function resumir(resumen) {
@@ -12,7 +13,7 @@ function resumir(resumen) {
 }
 
 function Conexion({ activo, si, no }) {
-  return <span className={`etiqueta etiqueta--${activo ? 'exito' : 'neutro'}`}>{activo ? si : no}</span>
+  return <span className={`etiqueta etiqueta--${activo ? 'exito' : 'advertencia'}`}>{activo ? si : no}</span>
 }
 
 export function RecepcionAutomatica({ version, onRevisado }) {
@@ -23,6 +24,7 @@ export function RecepcionAutomatica({ version, onRevisado }) {
   const sinRemitentes = datos?.correo.remitentes_autorizados === 0
 
   async function revisar(canal, nombre, ejecutar) {
+    if (ocupado) return
     setAccion({ canal, tipo: 'revisando', mensaje: `Revisando ${nombre}…` })
     try {
       const resumen = await ejecutar()
@@ -38,47 +40,72 @@ export function RecepcionAutomatica({ version, onRevisado }) {
       <h2 id="titulo-automatica">Recepción automática</h2>
       {error && (
         <p className="aviso aviso--error">
-          No se pudo obtener el estado. <button type="button" className="enlace" onClick={recargar}>Reintentar</button>
+          No se pudo cargar. <button type="button" className="enlace" onClick={recargar}>Reintentar</button>
         </p>
       )}
+      {!datos && !error && <p className="nota">Cargando…</p>}
       {datos && (
-        <dl className="lista-datos">
-          <div><dt>Casilla de correo</dt><dd><Conexion activo={datos.correo.configurado} si="Configurada" no="Sin configurar" /></dd></div>
-          <div><dt>Remitentes autorizados</dt><dd>{formatearNumero(datos.correo.remitentes_autorizados)}</dd></div>
-          <div><dt>Última lectura correo</dt><dd>{formatearFecha(datos.correo.ultima_revision)}</dd></div>
-          <div><dt>Recibidos hoy por correo</dt><dd>{formatearNumero(datos.correo.recibidos_hoy)}</dd></div>
-          <div><dt>Directorio SFTP</dt><dd><Conexion activo={datos.sftp.configurado} si="Disponible" no="No encontrado" /></dd></div>
-          <div><dt>Última lectura SFTP</dt><dd>{formatearFecha(datos.sftp.ultima_revision)}</dd></div>
-          <div><dt>Pendientes de OCR</dt><dd>{formatearNumero(datos.pendientes_extraccion)}</dd></div>
-        </dl>
+        <>
+          <div className="grupo">
+            <div className="grupo__cabecera">
+              <h3 className="grupo__titulo"><Icono nombre="correo" tamano={18} /> Correo</h3>
+              <Conexion activo={datos.correo.configurado} si="Activo" no="Sin configurar" />
+            </div>
+            <dl className="lista-datos">
+              <div>
+                <dt>Remitentes</dt>
+                <dd className="lista-datos__accion">
+                  {formatearNumero(datos.correo.remitentes_autorizados)}
+                  <button type="button" className="boton boton--compacto" onClick={() => setRemitentesAbierto(true)}>
+                    Editar<span className="oculto"> remitentes</span>
+                  </button>
+                </dd>
+              </div>
+              <div><dt>Última lectura</dt><dd>{formatearFecha(datos.correo.ultima_revision)}</dd></div>
+              <div><dt>Recibidos hoy</dt><dd>{formatearNumero(datos.correo.recibidos_hoy)}</dd></div>
+            </dl>
+            {!datos.correo.configurado && <p className="nota">Falta configurar la casilla (IMAP_* en backend/.env).</p>}
+            {datos.correo.configurado && sinRemitentes && <p className="nota">Agregue un remitente para leer el correo.</p>}
+          </div>
+
+          <div className="grupo">
+            <div className="grupo__cabecera">
+              <h3 className="grupo__titulo"><Icono nombre="servidor" tamano={18} /> SFTP</h3>
+              <Conexion activo={datos.sftp.configurado} si="Activo" no="No encontrado" />
+            </div>
+            <dl className="lista-datos">
+              <div><dt>Última lectura</dt><dd>{formatearFecha(datos.sftp.ultima_revision)}</dd></div>
+              <div><dt>Recibidos hoy</dt><dd>{formatearNumero(datos.sftp.recibidos_hoy)}</dd></div>
+            </dl>
+          </div>
+
+          {/* Solo se muestra cuando hay algo pendiente: un "0" fijo es ruido */}
+          {datos.pendientes_extraccion > 0 && (
+            <p className="nota">{formatearNumero(datos.pendientes_extraccion)} en lectura OCR</p>
+          )}
+        </>
       )}
+      {/* Mientras se lee un canal los botones quedan aria-disabled (no disabled) para que el pulsado conserve el foco. */}
       <div className="acciones">
         <button
           type="button"
           className="boton"
-          disabled={ocupado || !datos?.correo.configurado || sinRemitentes}
+          disabled={!datos?.correo.configurado || sinRemitentes}
+          aria-disabled={ocupado || undefined}
           onClick={() => revisar('correo', 'Correo', revisarCorreo)}
         >
-          {ocupado && accion.canal === 'correo' ? 'Leyendo…' : 'Leer correo ahora'}
+          {ocupado && accion.canal === 'correo' ? 'Leyendo…' : 'Leer correo'}
         </button>
         <button
           type="button"
           className="boton"
-          disabled={ocupado || !datos?.sftp.configurado}
+          disabled={!datos?.sftp.configurado}
+          aria-disabled={ocupado || undefined}
           onClick={() => revisar('sftp', 'SFTP', revisarSftp)}
         >
-          {ocupado && accion.canal === 'sftp' ? 'Leyendo…' : 'Forzar lectura SFTP'}
-        </button>
-        <button type="button" className="boton" onClick={() => setRemitentesAbierto(true)}>
-          Remitentes autorizados
+          {ocupado && accion.canal === 'sftp' ? 'Leyendo…' : 'Leer SFTP'}
         </button>
       </div>
-      {datos && !datos.correo.configurado && (
-        <p className="nota">Para leer el correo, configure la casilla (IMAP_*) en backend/.env.</p>
-      )}
-      {datos?.correo.configurado && sinRemitentes && (
-        <p className="nota">Agregue al menos un remitente autorizado para leer el correo.</p>
-      )}
       <p className={`aviso aviso--${accion.tipo}`} role="status" aria-live="polite">{accion.mensaje}</p>
       <RemitentesAutorizados
         abierto={remitentesAbierto}
