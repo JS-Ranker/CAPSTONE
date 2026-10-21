@@ -53,7 +53,7 @@ def test_listar_muestra_casos_y_rechazos_pendientes(bandeja):
     assert todas["pendientes"] == {CASO: 1, RECHAZO: 5}
     assert {e["estado"] for e in todas["excepciones"]} == {PENDIENTE}
     caso = caso_en_revision(bandeja)
-    assert caso["motivo"] == "Datos vacíos o poco legibles: FECHA OFICIO, N° RESOLUCIÓN"
+    assert caso["motivo"] == "Datos por revisar: FECHA OFICIO, N° RESOLUCIÓN"
     assert caso["archivo_origen"] == CSV_MUESTRA.name
     assert listar(bandeja, buscar=f"{caso['rut']}-{caso['dv']}")["total"] == 1
 

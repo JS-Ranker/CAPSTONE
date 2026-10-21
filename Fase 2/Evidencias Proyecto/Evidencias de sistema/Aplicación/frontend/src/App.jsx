@@ -3,6 +3,7 @@ import './App.css'
 import { CasosTgr } from './componentes/CasosTgr'
 import { Icono } from './componentes/Icono'
 import { PantallaExcepciones } from './componentes/PantallaExcepciones'
+import { PantallaIA } from './componentes/PantallaIA'
 import { PantallaIngesta } from './componentes/PantallaIngesta'
 
 const CHEQUEOS = [
@@ -18,10 +19,11 @@ const MODULOS = [
     id: 'excepciones', nombre: 'Excepciones', icono: 'excepciones', titulo: 'Bandeja de Excepciones',
     Pantalla: PantallaExcepciones,
   },
+  { id: 'ia', nombre: 'Análisis IA', icono: 'reportes', titulo: 'Análisis con IA', Pantalla: PantallaIA },
 ]
 const PROXIMOS = [
   { nombre: 'Dashboard', icono: 'dashboard' },
-  { nombre: 'Reportes e IA', icono: 'reportes' },
+  { nombre: 'Reportes', icono: 'bitacora' },
   { nombre: 'Auditoría', icono: 'bitacora' },
   { nombre: 'Usuarios y roles', icono: 'usuarios' },
 ]

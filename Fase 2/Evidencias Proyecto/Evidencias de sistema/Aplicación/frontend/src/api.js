@@ -56,3 +56,8 @@ export const revisarExcepcion = (tipo, id, { accion, observacion, datos }) => pe
   `/api/excepciones/${tipo}/${id}/revisiones`,
   { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ accion, observacion, datos }) },
 )
+
+// Módulo de IA (CU08): accion 'aplicar' (la validación sugerida) o 'revisar' (descartar).
+export const revisarInsight = (id, { accion, observacion }) => pedir(`/api/ia/insights/${id}/revision`, {
+  method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ accion, observacion }),
+})

@@ -12,12 +12,14 @@ from .config import settings
 from .db import engine
 from .modulos.etl.api import router as etl_router
 from .modulos.excepciones.api import router as excepciones_router
+from .modulos.ia.api import router as ia_router
 from .modulos.recepcion.api import router as recepcion_router
 
 app = FastAPI(title="TTDH Automation API", version="0.1.0")
 app.include_router(recepcion_router)
 app.include_router(etl_router)
 app.include_router(excepciones_router)
+app.include_router(ia_router)
 
 app.add_middleware(
     CORSMiddleware,

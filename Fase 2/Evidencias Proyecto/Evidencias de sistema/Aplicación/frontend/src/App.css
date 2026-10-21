@@ -502,3 +502,20 @@ a { color: var(--primario); text-underline-offset: 3px; }
 .tabla--informes th, .tabla--informes td { padding-left: 10px; padding-right: 10px; }
 .enlace--archivo { text-align: left; font-weight: 600; overflow-wrap: anywhere; text-decoration-color: currentColor; }
 .enlace--archivo:hover { text-decoration-thickness: 2px; }
+
+/* --- Análisis IA --- */
+.aviso--advertencia { padding: 10px 12px; border-left: 3px solid var(--advertencia); border-radius: 0 var(--radio) var(--radio) 0;
+  background: var(--advertencia-fondo); color: var(--texto); }
+.campo--en-linea { display: flex; align-items: center; gap: 8px; }
+.campo--en-linea input { width: auto; }
+.indicadores { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; margin: 0; }
+.indicadores > div { padding: 10px 12px; border: 1px solid var(--borde); border-radius: var(--radio); }
+.indicadores dt { font-size: 0.8rem; color: var(--texto-suave); }
+.indicadores dd { margin: 2px 0 0; font-size: 1.35rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.puntos { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
+.insights { display: grid; margin: 0; padding: 0; list-style: none; border-top: 1px solid var(--borde); }
+.insight { display: grid; gap: 6px; padding: 14px 0; border-bottom: 1px solid var(--borde); }
+.insight__cabecera { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
+.insight__titulo { margin: 0; font-size: 0.95rem; font-weight: 600; overflow-wrap: anywhere; }
+.insight__detalle, .insight__sugerencia { margin: 0; font-size: 0.9rem; overflow-wrap: anywhere; }
+#titulo-insights:focus { outline: none; }

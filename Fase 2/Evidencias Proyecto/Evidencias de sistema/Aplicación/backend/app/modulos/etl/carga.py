@@ -16,6 +16,8 @@ from sqlalchemy.exc import DBAPIError
 
 from ... import bitacora
 from ...db import transaccion
+from ..ia.reglas import motivo_por_reglas, reglas_activas
+from ..ia.servicio import analizar_sin_fallar
 from .reglas import COLUMNAS_CSV, COLUMNAS_STG, Caso, Rechazo, normalizar
 
 CARGADO, RECHAZADO, DUPLICADO = "Cargado", "Rechazado", "Duplicado"  # etl.resultados.resultado
@@ -144,6 +146,16 @@ def ejecutar_filas(conexion: Connection, filas: list[dict[str, str]], nombre: st
         ids_stg = _cargar_staging(conexion, filas, nombre)
 
         normalizadas = [normalizar(fila) for fila in filas]
+        # Validaciones sugeridas por la IA que el analista aplicó (CU08 paso 5): el caso se carga igual, pero
+        # marcado para revisión manual con el motivo en CAMPOS FALTANTES OCR.
+        reglas = reglas_activas(conexion)
+        for normalizada in normalizadas:
+            motivo = motivo_por_reglas(normalizada.columnas["monto_solicitado"], reglas) \
+                if isinstance(normalizada, Caso) else None
+            if motivo:
+                normalizada.columnas["rev_manual_bit"] = True
+                previos = normalizada.columnas.get("camp_falt")
+                normalizada.columnas["camp_falt"] = f"{previos}, {motivo}" if previos else motivo
         vistos = casos_existentes(conexion, [n for n in normalizadas if isinstance(n, Caso)])
         resultados = []  # (id_stg, resultado, motivo, id_caso)
         for id_stg, normalizada in zip(ids_stg, normalizadas):
@@ -217,6 +229,7 @@ def procesar_archivo(conexion: Connection, id_archivo: int, almacen: Path) -> Re
             bitacora.registrar(conexion, "Ejecución ETL rechazada",
                                {"id_archivo": id_archivo, "archivo": documento["nombre_archivo"], "motivo": str(error)})
         raise
+    analizar_sin_fallar(conexion, id_archivo)
     return resumen
 
 

@@ -118,6 +118,7 @@ class Registro:
     estado: str = CARGADO
     motivo: str | None = None
     caso: str | None = None
+    anomalia: dict | None = None  # anomalía sembrada para la IA: {"nivel": ..., "motivo": ...}
 
     def normalizado(self) -> dict[str, object]:
         return {
@@ -152,6 +153,8 @@ class Registro:
             fila["motivo"] = self.motivo
         if self.caso:
             fila["caso"] = self.caso
+        if self.anomalia:
+            fila["anomalia_esperada"] = self.anomalia
         if self.escrito:
             fila["valor_en_archivo"] = dict(self.escrito)
         return fila
@@ -226,6 +229,35 @@ class Generador:
 
     def informe(self, cantidad: int) -> Informe:
         return Informe(self.lote(), self.registros(cantidad))
+
+
+def con_anomalias(gen: Generador, normales: int = 60) -> list[Registro]:
+    """Deudores normales más anomalías sembradas para el módulo de IA (RF08), cada una con su nivel esperado."""
+    registros = gen.registros(normales)
+
+    def sembrar(nivel: str, motivo: str, **cambios: object) -> Registro:
+        registro = gen.registro()
+        for campo, valor in cambios.items():
+            setattr(registro, campo, valor)
+        registro.anomalia = {"nivel": nivel, "motivo": motivo}
+        registros.append(registro)
+        return registro
+
+    sembrar("Alto", "Monto muy sobre lo habitual de su tesorería", monto=180_000_000)
+    sembrar("Medio", "Monto muy sobre lo habitual de su tesorería", monto=45_000_000)
+    sembrar("Medio", "Oficio de hace más de un año", fecha_oficio=date(2023, 3, 15))
+    sembrar("Medio", "Fecha del oficio posterior a la recepción", fecha_oficio=date(2030, 1, 10))
+    sembrar("Bajo", "Expediente muy antiguo", expediente="4521-1995 SANTIAGO")
+    repetido = gen.rut()
+    for numero in range(4):
+        sembrar("Medio", "El mismo RUT aparece 4 veces en el informe", rut=repetido,
+                expediente=f"{gen.rng.randint(100, 99_999)}-{2021 + numero} SANTIAGO")
+    gen.rng.shuffle(registros)
+    # La alerta del RUT repetido es una sola: va en el primero de sus casos según el orden del informe.
+    del_rut = [r for r in registros if r.rut == repetido]
+    for r in del_rut[1:]:
+        r.anomalia = None
+    return registros
 
 
 def casos_de_borde(gen: Generador) -> list[Registro]:
@@ -646,6 +678,15 @@ def generar(salida: Path, semilla: int = 2026, grande: int = 0) -> dict[str, obj
     archivos.append(entrada_manifiesto(relativa, "Word", "Informe válido en Word: tabla con RUT con puntos y montos "
                                        "en pesos.", "Procesado", informe))
     deudores += informe.registros
+
+    destino, relativa = ruta(estructurados, "14_informe_con_anomalias.xlsx")
+    informe = Informe(gen.lote(), con_anomalias(gen))
+    escribir_excel(destino, informe)
+    archivos.append(entrada_manifiesto(
+        relativa, "Excel", "60 deudores normales y anomalías sembradas para la IA (anomalia_esperada en cada "
+        "registro): montos muy altos, oficio antiguo o posterior a la recepción, expediente muy antiguo y un RUT "
+        "repetido 4 veces. Se debe analizar después de cargar otros informes, que forman el historial.",
+        "Procesado", informe))
 
     # Documentos no estructurados (RF12, RN05)
     destino, relativa = ruta(no_estructurados, "21_informe_pdf_texto.pdf")

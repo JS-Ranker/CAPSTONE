@@ -41,7 +41,7 @@ WITH ultimas AS (
 ),
 excepciones AS (
     SELECT N'{CASO}' AS tipo, c.id_caso AS id, c.rut_limpio AS rut, c.dv_limpio AS dv, c.nom_cli, c.rol,
-           COALESCE(N'Datos vacíos o poco legibles: ' + c.camp_falt, N'Marcado para revisión manual') AS motivo,
+           COALESCE(N'Datos por revisar: ' + c.camp_falt, N'Marcado para revisión manual') AS motivo,
            COALESCE(e.id_archivo, n.id_archivo) AS id_informe,
            COALESCE(e.archivo_origen, n.archivo_origen) AS archivo_origen,
            COALESCE(e.fecha_inicio, {_FECHA_LOCAL.format('c.fecha_carga_utc')}) AS fecha,

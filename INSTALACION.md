@@ -98,16 +98,19 @@ sqlcmd -S $SERVIDOR -E -C -f 65001 -i creacion_tablas.sql
 sqlcmd -S $SERVIDOR -E -C -f 65001 -i 06_etl.sql
 sqlcmd -S $SERVIDOR -E -C -f 65001 -i 07_revisiones.sql
 sqlcmd -S $SERVIDOR -E -C -f 65001 -i 08_word.sql
+
+# Módulo de IA analítica
+sqlcmd -S $SERVIDOR -E -C -f 65001 -i 09_ia.sql
 ```
 
-Comprobar que quedó bien. La primera consulta debe mostrar **4** (los roles iniciales) y la segunda, estas **5** tablas: `core.casos_tgr`, `etl.ejecuciones`, `etl.resultados`, `etl.revisiones` y `stg.casos_tgr`.
+Comprobar que quedó bien. La primera consulta debe mostrar **4** (los roles iniciales) y la segunda, estas **8** tablas: `core.casos_tgr`, `etl.ejecuciones`, `etl.resultados`, `etl.revisiones`, `ia.analisis`, `ia.insights`, `ia.reglas` y `stg.casos_tgr`.
 
 ```powershell
 sqlcmd -S $SERVIDOR -E -C -Q "SELECT COUNT(*) FROM TTDH_Automation.dbo.Roles"
-sqlcmd -S $SERVIDOR -E -C -d TTDH_Automation -Q "SELECT s.name + '.' + t.name FROM sys.tables t JOIN sys.schemas s ON s.schema_id = t.schema_id WHERE s.name IN ('stg','core','etl') ORDER BY 1"
+sqlcmd -S $SERVIDOR -E -C -d TTDH_Automation -Q "SELECT s.name + '.' + t.name FROM sys.tables t JOIN sys.schemas s ON s.schema_id = t.schema_id WHERE s.name IN ('stg','core','etl','ia') ORDER BY 1"
 ```
 
-> **Cuidado:** `02_tablas.sql` borra y recrea las tablas principales. Si lo vuelves a ejecutar, después hay que correr de nuevo todos los scripts que vienen después. Los demás scripts (`03` en adelante, los de Tomás, `06`, `07` y `08`) no borran datos y se pueden ejecutar las veces que quieras.
+> **Cuidado:** `02_tablas.sql` borra y recrea las tablas principales. Si lo vuelves a ejecutar, después hay que correr de nuevo todos los scripts que vienen después. Los demás scripts (`03` en adelante, los de Tomás, `06`, `07`, `08` y `09`) no borran datos y se pueden ejecutar las veces que quieras.
 >
 > Los archivos `.ktr` de esta carpeta son el ETL original de Tomás en Pentaho. **No hace falta Pentaho**: la aplicación ejecuta las mismas reglas en Python (`backend/app/modulos/etl/`).
 
@@ -186,7 +189,7 @@ npm run dev
 
 (`npm ci` instala exactamente las versiones del `package-lock.json`, así todos tenemos las mismas.)
 
-Abre <http://localhost:5173>. Se muestra la pantalla **Ingesta de documentos TGR**; el menú tiene **Ingesta**, **Casos TGR** y **Excepciones**.
+Abre <http://localhost:5173>. Se muestra la pantalla **Ingesta de documentos TGR**; el menú tiene **Ingesta**, **Casos TGR**, **Excepciones** y **Análisis IA**.
 
 ---
 
@@ -244,7 +247,7 @@ Para detener la API o la web: `Ctrl + C` en su terminal.
 | `sqlcmd` dice *"Login timeout expired"* o *"server was not found"* | Nombre de servidor incorrecto o servicio detenido. Revisa el paso 3 (¿es `localhost\SQLEXPRESS`?). |
 | `/api/health/db` responde **503** o las pruebas salen *skipped* | El backend no se conecta a SQL Server o faltan las tablas. Revisa `DB_SERVER` y `DB_DRIVER` en `backend\.env` (el nombre del driver debe coincidir exactamente con el instalado; para verlo: `Get-OdbcDriver -Name "*SQL Server*"`) y que hayas ejecutado todos los scripts del paso 4. |
 | Error *"Data source name not found and no default driver specified"* | El `DB_DRIVER` del `.env` no coincide con el driver instalado. |
-| Las pruebas se saltan con *"Falta ejecutar 'Base de datos/04_recepcion.sql'"* (o `05`) o *"Falta la tabla etl..."* | Ejecuta los scripts que faltan como en el paso 4 (los de Tomás y luego `06`, `07` y `08`). |
+| Las pruebas se saltan con *"Falta ejecutar 'Base de datos/04_recepcion.sql'"* (o `05`) o *"Falta la tabla etl..."* | Ejecuta los scripts que faltan como en el paso 4 (los de Tomás y luego `06`, `07`, `08` y `09`). |
 | Al cargar un informe queda en **Error de Extracción** | Es esperable si el informe no cuadra (totales distintos al detalle, faltan columnas, archivo dañado). Abre **Ver detalle** del informe: el motivo exacto aparece arriba y en el historial. |
 | Al cargar un `.docx` la web dice *"Ocurrió un error en el servidor"* | Falta ejecutar `08_word.sql` (paso 4): la base aún no acepta el tipo Word. Si la terminal de la API muestra *"No module named 'docx'"*, ejecuta `pip install -r requirements.txt`. |
 | *"No se encontró Tesseract"* | `TESSERACT_CMD` en el `.env` no apunta a `tesseract.exe`. |

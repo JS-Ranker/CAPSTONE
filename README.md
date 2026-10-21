@@ -77,9 +77,20 @@ flowchart LR
 | Extracción del informe en Excel, CSV, TXT, Word, PDF, escaneo y foto (RF02, RF12) | ✅ Implementada |
 | ETL con las reglas de validación (RF03), con trazabilidad por deudor | ✅ Implementado |
 | Bandeja de Excepciones para la revisión manual (RF05, CU05) | ✅ Implementada |
+| IA analítica: anomalías por deudor, tendencias de rechazo, resumen del día y validaciones sugeridas (RF08, CU08) | ✅ Implementada (falta la consulta en lenguaje natural) |
 | Cruce con clientes de Banco Genérico y regla de 0,5 UTM (RF04) | ⬜ Pendiente |
 | Informe de respuesta a la TGR, avisos a clientes y exportación (RF07, RF11) | ⬜ Pendiente |
-| Dashboard (RF06), IA (RF08), usuarios y roles (RF09) | ⬜ Pendiente |
+| Dashboard (RF06), usuarios y roles (RF09) | ⬜ Pendiente |
+
+### Módulo de IA analítica (RF08)
+
+Después del ETL de cada informe, la IA compara sus deudores con el **historial de casos** y genera alertas con nivel **Alto, Medio o Bajo**:
+
+- **Anomalías por deudor:** reglas explicables con umbrales que salen del historial (monto muy sobre lo habitual de su tesorería, oficio muy antiguo o posterior a la recepción, expediente muy antiguo, mismo RUT varias veces en el informe) y un modelo **IsolationForest** (scikit-learn) que detecta combinaciones que son más raras que todo el historial. Cada alerta dice por qué.
+- **Tendencias de rechazo y calidad:** un informe con muchos más rechazos o datos dudosos que lo habitual, con el motivo que domina y una sugerencia.
+- **Validaciones sugeridas:** una alerta de monto propone una regla (por ejemplo, revisión manual de montos sobre el percentil 99 del historial); si el analista la aplica, el ETL la usa desde el siguiente informe.
+
+Si la IA falla, el informe queda procesado igual y la falla queda en la bitácora. Con menos de 40 casos de historial se usan solo las reglas.
 
 ## ✨ Características principales
 
@@ -150,7 +161,7 @@ CAPSTONE/
 │           │   │   │   ├── main.py       # API REST (endpoints /api/...)
 │           │   │   │   ├── config.py     # configuración desde backend/.env
 │           │   │   │   ├── db.py         # conexión a SQL Server
-│           │   │   │   └── modulos/      # recepcion, extraccion, etl, excepciones, validaciones,
+│           │   │   │   └── modulos/      # recepcion, extraccion, etl, excepciones, ia, validaciones,
 │           │   │   │                     # cruce, trazabilidad, ia, reportes
 │           │   │   ├── tests/            # pruebas con pytest
 │           │   │   ├── requirements.txt
@@ -201,6 +212,7 @@ sqlcmd -S localhost -E -C -f 65001 -i creacion_tablas.sql
 sqlcmd -S localhost -E -C -f 65001 -i 06_etl.sql
 sqlcmd -S localhost -E -C -f 65001 -i 07_revisiones.sql
 sqlcmd -S localhost -E -C -f 65001 -i 08_word.sql
+sqlcmd -S localhost -E -C -f 65001 -i 09_ia.sql
 ```
 
 > Con SQL Server Express el servidor suele ser `localhost\SQLEXPRESS` en lugar de `localhost` (aquí y en `DB_SERVER` del `.env`).
@@ -214,6 +226,7 @@ sqlcmd -S localhost -E -C -f 65001 -i 08_word.sql
 > | `06_etl.sql` | `etl.ejecuciones` y `etl.resultados`: resultado del ETL por deudor (cargado, rechazado con motivo o duplicado) |
 > | `07_revisiones.sql` | `etl.revisiones`: historial de la revisión manual (Bandeja de Excepciones) |
 > | `08_word.sql` | Agrega el tipo `Word` a `Archivos_TGR` |
+> | `09_ia.sql` | Esquema `ia`: análisis de cada informe, sus insights (alertas) y las validaciones sugeridas que el analista aplicó |
 
 **3. Backend (Python)**
 
@@ -242,8 +255,9 @@ La aplicación tiene tres pantallas (al pie del menú se ve si la API y la base 
 | **Ingesta** | Cargar informes; recepción automática por correo y SFTP (con remitentes autorizados); lista de **Informes recibidos** con su estado y cuántos deudores quedan por revisar. El detalle de cada informe muestra el documento original, el resultado del ETL y su historial. |
 | **Casos TGR** | Casos cargados (búsqueda por RUT, nombre o rol, y filtro de revisión manual) y filas rechazadas con el estado de su revisión. |
 | **Excepciones** | Bandeja de revisión manual: completar y regularizar los casos dudosos, corregir y cargar o descartar las filas rechazadas, siempre con observación e historial. |
+| **Análisis IA** | Resumen del día y alertas de la IA ordenadas por nivel (Alto, Medio, Bajo), cada una con su explicación. Las sugerencias de validación se pueden aplicar (rigen desde el siguiente informe) o marcar como revisadas. |
 
-Casos TGR y Excepciones se pueden filtrar por **N° de informe**, para ver todos los deudores de un informe (por ejemplo `http://localhost:5173/#/casos?informe=808`).
+Casos TGR, Excepciones y Análisis IA se pueden filtrar por **N° de informe**, para ver todos los deudores de un informe (por ejemplo `http://localhost:5173/#/casos?informe=808`).
 
 **5. Recepción de documentos (RF01)**
 

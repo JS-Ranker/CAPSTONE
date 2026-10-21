@@ -1,4 +1,5 @@
 """Pruebas de los canales de recepción (correo y SFTP), la extracción de pendientes y la API de carga web."""
+import json
 import os
 import shutil
 from contextlib import nullcontext
@@ -36,8 +37,11 @@ def test_normaliza_un_pdf_con_texto_pendiente(conexion, almacen):
     assert (registro["estado_archivo"], registro["total_registros"]) == ("Procesado", 25)
     assert float(registro["confianza_extraccion"]) == 100.0
     assert ruta_plantilla(almacen / documento.ruta_original).is_file()
-    accion, detalle = ultima_bitacora(conexion)
-    assert accion == "Ejecución ETL" and detalle["cargadas"] == 25
+    detalle = conexion.execute(text(
+        "SELECT TOP 1 detalle_cambio FROM dbo.Bitacora_Trazabilidad WHERE accion_ejecutada = 'Ejecución ETL' "
+        "ORDER BY id_bitacora DESC")).scalar_one()
+    assert json.loads(detalle)["cargadas"] == 25
+    assert ultima_bitacora(conexion)[0] == "Análisis IA"          # la IA analiza el informe después del ETL
     assert conexion.execute(text("SELECT COUNT(*) FROM core.casos_tgr")).scalar_one() == 25
 
 

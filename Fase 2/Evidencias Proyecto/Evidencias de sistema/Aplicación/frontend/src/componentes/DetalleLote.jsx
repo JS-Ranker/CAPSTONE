@@ -38,6 +38,7 @@ function ResultadoEtl({ archivo, onProcesado, onVerCasos }) {
           </dl>
           <p className="enlaces">
             <a href={`#/casos?informe=${archivo.id_archivo}`} onClick={onVerCasos}>Ver los deudores de este informe</a>
+            <a href={`#/ia?informe=${archivo.id_archivo}`} onClick={onVerCasos}>Ver el análisis de IA</a>
             {archivo.por_revisar > 0 && (
               <a href={`#/excepciones?informe=${archivo.id_archivo}`} onClick={onVerCasos}>
                 Revisar {archivo.por_revisar === 1 ? 'el pendiente' : `los ${formatearNumero(archivo.por_revisar)} pendientes`}
@@ -87,6 +88,13 @@ function describir({ accion, detalle: d }) {
         + `${formatearNumero(d.duplicadas)} duplicados.`]
     case 'Ejecución ETL rechazada':
       return [`No se cargó: ${d.motivo}`]
+    case 'Análisis IA': {
+      const alertas = Object.entries(d.alertas ?? {}).map(([nivel, n]) => `${n} ${nivel.toLowerCase()}`)
+      return [`${formatearNumero(d.casos)} casos analizados con ${d.modelo}: `
+        + `${alertas.length ? `alertas ${alertas.join(', ')}` : 'sin alertas'}.`]
+    }
+    case 'Análisis IA fallido':
+      return ['No se pudo completar el análisis de IA; el informe quedó procesado igual.']
     default:
       return []
   }
