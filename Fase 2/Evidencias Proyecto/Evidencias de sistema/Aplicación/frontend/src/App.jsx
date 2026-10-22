@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import './App.css'
 import { CasosTgr } from './componentes/CasosTgr'
 import { Icono } from './componentes/Icono'
+import { PantallaCruce } from './componentes/PantallaCruce'
 import { PantallaExcepciones } from './componentes/PantallaExcepciones'
 import { PantallaIA } from './componentes/PantallaIA'
 import { PantallaIngesta } from './componentes/PantallaIngesta'
@@ -20,6 +21,7 @@ const MODULOS = [
     Pantalla: PantallaExcepciones,
   },
   { id: 'ia', nombre: 'Análisis IA', icono: 'reportes', titulo: 'Análisis con IA', Pantalla: PantallaIA },
+  { id: 'cruce', nombre: 'Cruce Banco', icono: 'servidor', titulo: 'Cruce con Banco Genérico', Pantalla: PantallaCruce },
 ]
 const PROXIMOS = [
   { nombre: 'Dashboard', icono: 'dashboard' },

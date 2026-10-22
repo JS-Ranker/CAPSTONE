@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { procesarArchivo } from '../api'
-import { formatearFecha, formatearNumero, formatearPorcentaje } from '../formato'
+import { formatearFecha, formatearMonto, formatearNumero, formatearPorcentaje } from '../formato'
 import { usePeticion } from '../usePeticion'
 import { EstadoArchivo } from './EstadoArchivo'
 import { Icono } from './Icono'
@@ -95,6 +95,14 @@ function describir({ accion, detalle: d }) {
     }
     case 'Análisis IA fallido':
       return ['No se pudo completar el análisis de IA; el informe quedó procesado igual.']
+    case 'Cruce con Banco Genérico':
+      return [`${formatearNumero(d.casos)} casos con UTM ${d.periodo}: ${formatearNumero(d.descontados)} descontados, `
+        + `${formatearNumero(d.parciales)} parciales, ${formatearNumero(d.no_descontados)} sin descuento y `
+        + `${formatearNumero(d.en_revision)} en revisión. Total descontado: ${formatearMonto(d.monto_descontado)}.`]
+    case 'Cruce pendiente':
+      return [`No se cruzó: ${d.motivo}`]
+    case 'Cruce fallido':
+      return ['No se pudo completar el cruce con Banco Genérico; el informe quedó procesado igual.']
     default:
       return []
   }

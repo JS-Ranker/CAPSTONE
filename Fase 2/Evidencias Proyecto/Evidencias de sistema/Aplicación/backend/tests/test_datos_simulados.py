@@ -132,8 +132,17 @@ def test_pdf_con_texto_seleccionable_y_escaneado_sin_texto(salida, manifiesto):
         assert not (pdf.pages[0].extract_text() or "").strip()
 
 
-def test_cuentas_del_banco_solo_para_deudores_cargados(salida, manifiesto):
+def test_cuentas_del_banco_para_el_cruce(salida, manifiesto):
     with (salida / manifiesto["banco_generico"]["archivo"]).open(encoding="utf-8", newline="") as archivo:
         cuentas = list(csv.DictReader(archivo, delimiter=";"))
     assert len(cuentas) == manifiesto["banco_generico"]["cuentas"]
-    assert all(rut_valido(c["rut_titular"]) and c["estado_cuenta"] == "Activa" for c in cuentas)
+    assert all(rut_valido(c["rut_titular"]) and int(c["saldo"]) >= 0 for c in cuentas)
+    assert {c["estado_cuenta"] for c in cuentas} == {"Activa", "Bloqueada", "Cerrada"}
+    saldo: dict[str, int] = {}
+    for c in cuentas:
+        if c["estado_cuenta"] == "Activa":
+            saldo[c["rut_titular"]] = saldo.get(c["rut_titular"], 0) + int(c["saldo"])
+    assert any(s < 35_000 for s in saldo.values()) and any(s >= 35_000 for s in saldo.values())
+    # Las cuentas son solo de deudores cargados, y hay deudores que no son clientes
+    cargados = {r["rut"] for a in manifiesto["archivos"] for r in a.get("registros", []) if r["estado_esperado"] == "Cargado"}
+    assert {c["rut_titular"] for c in cuentas} < cargados

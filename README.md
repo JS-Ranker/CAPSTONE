@@ -78,7 +78,7 @@ flowchart LR
 | ETL con las reglas de validación (RF03), con trazabilidad por deudor | ✅ Implementado |
 | Bandeja de Excepciones para la revisión manual (RF05, CU05) | ✅ Implementada |
 | IA analítica: anomalías por deudor, tendencias de rechazo, resumen del día y validaciones sugeridas (RF08, CU08) | ✅ Implementada (falta la consulta en lenguaje natural) |
-| Cruce con clientes de Banco Genérico y regla de 0,5 UTM (RF04) | ⬜ Pendiente |
+| Cruce con clientes de Banco Genérico y regla de 0,5 UTM (RF04), con core bancario simulado | ✅ Implementado |
 | Informe de respuesta a la TGR, avisos a clientes y exportación (RF07, RF11) | ⬜ Pendiente |
 | Dashboard (RF06), usuarios y roles (RF09) | ⬜ Pendiente |
 
@@ -213,6 +213,7 @@ sqlcmd -S localhost -E -C -f 65001 -i 06_etl.sql
 sqlcmd -S localhost -E -C -f 65001 -i 07_revisiones.sql
 sqlcmd -S localhost -E -C -f 65001 -i 08_word.sql
 sqlcmd -S localhost -E -C -f 65001 -i 09_ia.sql
+sqlcmd -S localhost -E -C -f 65001 -i 10_cruce.sql
 ```
 
 > Con SQL Server Express el servidor suele ser `localhost\SQLEXPRESS` en lugar de `localhost` (aquí y en `DB_SERVER` del `.env`).
@@ -227,6 +228,7 @@ sqlcmd -S localhost -E -C -f 65001 -i 09_ia.sql
 > | `07_revisiones.sql` | `etl.revisiones`: historial de la revisión manual (Bandeja de Excepciones) |
 > | `08_word.sql` | Agrega el tipo `Word` a `Archivos_TGR` |
 > | `09_ia.sql` | Esquema `ia`: análisis de cada informe, sus insights (alertas) y las validaciones sugeridas que el analista aplicó |
+> | `10_cruce.sql` | Esquema `banco` (core bancario simulado: cuentas y saldos) y esquema `cruce`: UTM de cada mes y resultado del cruce de cada caso, con su motivo y las cuentas descontadas |
 
 **3. Backend (Python)**
 
@@ -237,6 +239,7 @@ python -m venv .venv
 pip install -r requirements.txt
 copy .env.example .env             # en Linux/macOS: cp .env.example .env  (luego ajustar los valores)
 python -m pytest                   # verifica la API y la conexión a la base de datos
+python scripts/cargar_core_bancario.py   # carga las cuentas simuladas de Banco Genérico (para el cruce)
 uvicorn app.main:app --reload      # API en http://localhost:8000 (documentación en /docs)
 ```
 
@@ -248,7 +251,7 @@ npm ci
 npm run dev                        # aplicación en http://localhost:5173
 ```
 
-La aplicación tiene tres pantallas (al pie del menú se ve si la API y la base de datos están conectadas):
+La aplicación tiene estas pantallas (al pie del menú se ve si la API y la base de datos están conectadas):
 
 | Pantalla | Para qué sirve |
 |---|---|
@@ -256,8 +259,9 @@ La aplicación tiene tres pantallas (al pie del menú se ve si la API y la base 
 | **Casos TGR** | Casos cargados (búsqueda por RUT, nombre o rol, y filtro de revisión manual) y filas rechazadas con el estado de su revisión. |
 | **Excepciones** | Bandeja de revisión manual: completar y regularizar los casos dudosos, corregir y cargar o descartar las filas rechazadas, siempre con observación e historial. |
 | **Análisis IA** | Resumen del día y alertas de la IA ordenadas por nivel (Alto, Medio, Bajo), cada una con su explicación. Las sugerencias de validación se pueden aplicar (rigen desde el siguiente informe) o marcar como revisadas. |
+| **Cruce Banco** | UTM de cada mes y resultado del cruce de cada informe con Banco Genérico: a quién se le descuenta, cuánto, de qué cuentas y, si no, por qué. El cruce corre solo después del ETL si la UTM del mes está ingresada; si no, se cruza desde esta pantalla. |
 
-Casos TGR, Excepciones y Análisis IA se pueden filtrar por **N° de informe**, para ver todos los deudores de un informe (por ejemplo `http://localhost:5173/#/casos?informe=808`).
+Casos TGR, Excepciones, Análisis IA y Cruce Banco se pueden filtrar por **N° de informe**, para ver todos los deudores de un informe (por ejemplo `http://localhost:5173/#/casos?informe=808`).
 
 **5. Recepción de documentos (RF01)**
 

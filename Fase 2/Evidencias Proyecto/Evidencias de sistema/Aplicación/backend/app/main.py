@@ -10,6 +10,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from .config import settings
 from .db import engine
+from .modulos.cruce.api import router as cruce_router
 from .modulos.etl.api import router as etl_router
 from .modulos.excepciones.api import router as excepciones_router
 from .modulos.ia.api import router as ia_router
@@ -20,6 +21,7 @@ app.include_router(recepcion_router)
 app.include_router(etl_router)
 app.include_router(excepciones_router)
 app.include_router(ia_router)
+app.include_router(cruce_router)
 
 app.add_middleware(
     CORSMiddleware,

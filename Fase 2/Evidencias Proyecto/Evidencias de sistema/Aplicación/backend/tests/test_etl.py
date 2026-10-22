@@ -351,7 +351,8 @@ def test_api_historial_del_lote(cliente, conexion_etl):
     bitacora.registrar(conexion_etl, "Recepción de documento", {"id_archivo": int(f"{id_archivo}8")})
 
     historial = cliente.get(f"/api/recepcion/archivos/{id_archivo}/historial").json()
-    assert [h["accion"] for h in historial] == ["Recepción de documento", "Ejecución ETL", "Análisis IA"]
+    assert [h["accion"] for h in historial] == ["Recepción de documento", "Ejecución ETL", "Análisis IA",
+                                                 "Cruce pendiente"]  # sin UTM del mes
     assert historial[0]["detalle"]["canal"] == "Web"
     assert historial[1]["detalle"]["cargadas"] == 28
     assert all(h["usuario"] for h in historial)

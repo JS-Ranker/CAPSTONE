@@ -61,6 +61,8 @@ TESORERIAS = (
     ("TESORERÍA REGIONAL DE ANTOFAGASTA", "ANTOFAGASTA"),
 )
 CODIGO_BANCO_GENERICO = "099"
+TIPOS_CUENTA = ("Cuenta RUT", "Cuenta corriente", "Chequera electrónica", "Cuenta de ahorro")
+MEDIA_UTM_REFERENCIA = 35_000  # 0,5 UTM aproximada (la UTM real la ingresa el analista en la aplicación)
 FECHA_GENERACION = date(2026, 10, 1)
 FECHA_METADATOS = datetime(2026, 10, 1, 9, 0)  # fija, para que los archivos sean reproducibles
 TITULO_INFORME = "Tesorería General de la República - Informe de deudores"
@@ -521,8 +523,8 @@ def escribir_fotografia(ruta: Path, informe: Informe, filas_manchadas: list[int]
 
 def escribir_cuentas_banco(ruta: Path, cuentas: list[dict[str, str]]) -> None:
     with ruta.open("w", encoding="utf-8", newline="") as archivo:
-        escritor = csv.DictWriter(archivo, fieldnames=("rut_titular", "cuenta", "codigo_banco", "estado_cuenta"),
-                                  delimiter=";")
+        escritor = csv.DictWriter(archivo, fieldnames=("rut_titular", "cuenta", "codigo_banco", "tipo_cuenta", "saldo",
+                                                       "estado_cuenta"), delimiter=";")
         escritor.writeheader()
         escritor.writerows(cuentas)
 
@@ -559,10 +561,38 @@ def entrada_manifiesto(
 
 
 def cuentas_banco(gen: Generador, registros: list[Registro]) -> list[dict[str, str]]:
-    """Una cuenta activa de Banco Genérico por deudor válido (base provisoria: el cruce agregará saldos)."""
-    cuentas = [{"rut_titular": r.rut, "cuenta": str(gen.rng.randint(10**9, 10**10 - 1)),
-                "codigo_banco": CODIGO_BANCO_GENERICO, "estado_cuenta": "Activa"}
-               for r in registros if r.estado == CARGADO]
+    """Cuentas de Banco Genérico de los deudores cargados, con saldos que recorren la regla del cruce (RF04).
+
+    Por RUT: ~15 % no es cliente; del resto, ~20 % tiene saldo total bajo 0,5 UTM, ~40 % alcanza a cubrir su deuda
+    y ~40 % la cubre en parte. A algunos se les agrega una cuenta bloqueada o cerrada con saldo, que el cruce ignora.
+    """
+    deuda: dict[str, int] = {}
+    for r in registros:
+        if r.estado == CARGADO:
+            deuda[r.rut] = deuda.get(r.rut, 0) + (r.monto or 0)
+    cuentas = []
+
+    def cuenta(rut: str, saldo: int, estado: str = "Activa") -> None:
+        cuentas.append({"rut_titular": rut, "cuenta": str(gen.rng.randint(10**9, 10**10 - 1)),
+                        "codigo_banco": CODIGO_BANCO_GENERICO, "tipo_cuenta": gen.rng.choice(TIPOS_CUENTA),
+                        "saldo": str(saldo), "estado_cuenta": estado})
+
+    for rut, total in deuda.items():
+        escenario = gen.rng.random()
+        if escenario < 0.15:
+            continue  # no es cliente
+        if escenario < 0.32:
+            saldo_total = gen.rng.randint(0, MEDIA_UTM_REFERENCIA - 1)
+        elif escenario < 0.66:
+            saldo_total = total + gen.rng.randint(1, 50) * 10_000
+        else:
+            saldo_total = max(MEDIA_UTM_REFERENCIA, total * gen.rng.randint(20, 90) // 100)
+        partes = gen.rng.randint(1, 3)
+        cortes = sorted(gen.rng.randint(0, saldo_total) for _ in range(partes - 1))
+        for desde, hasta in zip([0, *cortes], [*cortes, saldo_total]):
+            cuenta(rut, hasta - desde)
+        if gen.rng.random() < 0.1:
+            cuenta(rut, gen.rng.randint(100, 5_000) * 1_000, gen.rng.choice(("Bloqueada", "Cerrada")))
     gen.rng.shuffle(cuentas)
     return cuentas
 
@@ -612,6 +642,7 @@ def generar(salida: Path, semilla: int = 2026, grande: int = 0) -> dict[str, obj
     archivos.append(entrada_manifiesto(
         relativa, "Excel", "Un caso por regla de la extracción y del ETL. La suma declarada considera solo los "
         "montos numéricos del detalle.", "Procesado", informe))
+    deudores += informe.registros
 
     destino, relativa = ruta(estructurados, "05_informe_mes2_con_repetidos.csv")
     repetidos = [copia(r, estado=DUPLICADO, caso="Deudor ya informado en 02_informe_valido.csv",
@@ -624,6 +655,7 @@ def generar(salida: Path, semilla: int = 2026, grande: int = 0) -> dict[str, obj
         relativa, "CSV", "Repite 5 deudores de 02. Son duplicados solo si llegan el mismo día que 02 (la llave del "
         "caso incluye la fecha de ingreso); un mes después la TGR los vuelve a informar y se cargan de nuevo.",
         "Procesado", informe))
+    deudores += informe.registros
 
     destino, relativa = ruta(estructurados, "06_informe_totales_no_cuadran.csv")
     informe = gen.informe(40)
@@ -646,6 +678,7 @@ def generar(salida: Path, semilla: int = 2026, grande: int = 0) -> dict[str, obj
     escribir_delimitado(destino, informe, con_totales=False)
     archivos.append(entrada_manifiesto(relativa, "CSV", "Sin la línea TOTALES: se carga igual; solo se verifica la "
                                        "cantidad de deudores que declara el encabezado.", "Procesado", informe))
+    deudores += informe.registros
 
     destino, relativa = ruta(estructurados, "09_informe_columnas_incorrectas.csv")
     informe = gen.informe(30)
@@ -736,7 +769,7 @@ def generar(salida: Path, semilla: int = 2026, grande: int = 0) -> dict[str, obj
         archivos.append(entrada_manifiesto(relativa, "CSV", f"Informe válido de {grande} deudores para pruebas de "
                                            "rendimiento.", "Procesado", informe, incluir_registros=False))
 
-    # Base simulada de Banco Genérico (provisoria: el cruce con saldos y la regla de 0,5 UTM viene después)
+    # Core simulado de Banco Genérico para el cruce (RF04); se carga con scripts/cargar_core_bancario.py
     destino, relativa_banco = ruta(banco, "cuentas_core_bancario.csv")
     cuentas = cuentas_banco(gen, deudores)
     escribir_cuentas_banco(destino, cuentas)

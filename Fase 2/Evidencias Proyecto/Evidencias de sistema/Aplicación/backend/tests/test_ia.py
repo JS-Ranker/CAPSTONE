@@ -211,9 +211,9 @@ def test_si_la_ia_falla_el_informe_igual_queda_procesado(conexion_etl, almacen, 
     estado = conexion_etl.execute(text("SELECT estado_archivo FROM dbo.Archivos_TGR WHERE id_archivo = :id"),
                                   {"id": documento.id_archivo}).scalar_one()
     assert estado == "Procesado"
-    accion = conexion_etl.execute(text(
-        "SELECT TOP 1 accion_ejecutada FROM dbo.Bitacora_Trazabilidad ORDER BY id_bitacora DESC")).scalar_one()
-    assert accion == "Análisis IA fallido"
+    acciones = [a for (a,) in conexion_etl.execute(text(
+        "SELECT TOP 2 accion_ejecutada FROM dbo.Bitacora_Trazabilidad ORDER BY id_bitacora DESC"))]
+    assert acciones == ["Cruce pendiente", "Análisis IA fallido"]  # después de la IA viene el cruce (sin UTM)
 
 
 def test_api_ia(con_historial):

@@ -7,6 +7,7 @@
 **/data/real/
 **/data/entrada/
 **/data/salida/
+**/scripts/documentos_generados/
 *.bak
 
 # ---------------------------------------------------------------

@@ -61,3 +61,9 @@ export const revisarExcepcion = (tipo, id, { accion, observacion, datos }) => pe
 export const revisarInsight = (id, { accion, observacion }) => pedir(`/api/ia/insights/${id}/revision`, {
   method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ accion, observacion }),
 })
+
+// Cruce con Banco Genérico (RF04): UTM del mes (periodo 'aaaa-mm') y cruce de un informe.
+export const fijarUtm = (periodo, valor) => pedir(`/api/cruce/utm/${periodo}`, {
+  method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ valor }),
+})
+export const cruzarInforme = (idArchivo) => pedir(`/api/cruce/informes/${idArchivo}/cruzar`, { method: 'POST' })

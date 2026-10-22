@@ -101,16 +101,19 @@ sqlcmd -S $SERVIDOR -E -C -f 65001 -i 08_word.sql
 
 # Módulo de IA analítica
 sqlcmd -S $SERVIDOR -E -C -f 65001 -i 09_ia.sql
+
+# Cruce con Banco Genérico: core bancario simulado, UTM y resultados del cruce
+sqlcmd -S $SERVIDOR -E -C -f 65001 -i 10_cruce.sql
 ```
 
-Comprobar que quedó bien. La primera consulta debe mostrar **4** (los roles iniciales) y la segunda, estas **8** tablas: `core.casos_tgr`, `etl.ejecuciones`, `etl.resultados`, `etl.revisiones`, `ia.analisis`, `ia.insights`, `ia.reglas` y `stg.casos_tgr`.
+Comprobar que quedó bien. La primera consulta debe mostrar **4** (los roles iniciales) y la segunda, estas **13** tablas: `banco.cuentas`, `core.casos_tgr`, `cruce.descuentos`, `cruce.ejecuciones`, `cruce.resultados`, `cruce.utm`, `etl.ejecuciones`, `etl.resultados`, `etl.revisiones`, `ia.analisis`, `ia.insights`, `ia.reglas` y `stg.casos_tgr`.
 
 ```powershell
 sqlcmd -S $SERVIDOR -E -C -Q "SELECT COUNT(*) FROM TTDH_Automation.dbo.Roles"
-sqlcmd -S $SERVIDOR -E -C -d TTDH_Automation -Q "SELECT s.name + '.' + t.name FROM sys.tables t JOIN sys.schemas s ON s.schema_id = t.schema_id WHERE s.name IN ('stg','core','etl','ia') ORDER BY 1"
+sqlcmd -S $SERVIDOR -E -C -d TTDH_Automation -Q "SELECT s.name + '.' + t.name FROM sys.tables t JOIN sys.schemas s ON s.schema_id = t.schema_id WHERE s.name IN ('stg','core','etl','ia','banco','cruce') ORDER BY 1"
 ```
 
-> **Cuidado:** `02_tablas.sql` borra y recrea las tablas principales. Si lo vuelves a ejecutar, después hay que correr de nuevo todos los scripts que vienen después. Los demás scripts (`03` en adelante, los de Tomás, `06`, `07`, `08` y `09`) no borran datos y se pueden ejecutar las veces que quieras.
+> **Cuidado:** `02_tablas.sql` borra y recrea las tablas principales. Si lo vuelves a ejecutar, después hay que correr de nuevo todos los scripts que vienen después. Los demás scripts (`03` en adelante, los de Tomás, `06` a `10`) no borran datos y se pueden ejecutar las veces que quieras.
 >
 > Los archivos `.ktr` de esta carpeta son el ETL original de Tomás en Pentaho. **No hace falta Pentaho**: la aplicación ejecuta las mismas reglas en Python (`backend/app/modulos/etl/`).
 
@@ -169,6 +172,12 @@ python -m pytest
 
 Tarda unos 2 o 3 minutos (las pruebas de OCR son lentas). Todas las pruebas deben pasar. Si falla `test_conexion_base_datos` o hay pruebas **skipped** con el mensaje *"SQL Server no disponible"*, el backend no logra conectarse a la base de datos: revisa `DB_SERVER` y `DB_DRIVER` en el `.env`. Si se saltan con *"Falta la tabla etl..."* o *"Falta ejecutar..."*, falta algún script del paso 4.
 
+Carga las cuentas simuladas de Banco Genérico (el core bancario contra el que se cruzan los informes). Se puede repetir: actualiza los saldos.
+
+```powershell
+python scripts/cargar_core_bancario.py
+```
+
 ```powershell
 uvicorn app.main:app --reload
 ```
@@ -189,7 +198,7 @@ npm run dev
 
 (`npm ci` instala exactamente las versiones del `package-lock.json`, así todos tenemos las mismas.)
 
-Abre <http://localhost:5173>. Se muestra la pantalla **Ingesta de documentos TGR**; el menú tiene **Ingesta**, **Casos TGR**, **Excepciones** y **Análisis IA**.
+Abre <http://localhost:5173>. Se muestra la pantalla **Ingesta de documentos TGR**; el menú tiene **Ingesta**, **Casos TGR**, **Excepciones**, **Análisis IA** y **Cruce Banco**.
 
 ---
 
@@ -201,6 +210,7 @@ Abre <http://localhost:5173>. Se muestra la pantalla **Ingesta de documentos TGR
 | <http://localhost:8000/api/health/db> | `{"estado":"ok","base_datos":"TTDH_Automation","roles":4}` |
 | <http://localhost:5173> | Al pie del menú, la API y la base de datos aparecen conectadas. |
 | Cargar un informe de prueba | Arrastra `Aplicación\data\simulados\estructurados\04_informe_casos_borde.xlsx` a la zona de carga. En unos segundos aparece en **Informes recibidos** como **Procesado**, con **8** deudores por revisar. |
+| Ingresar la UTM | En **Cruce Banco**, ingresa la UTM del mes actual (por ejemplo `69751`) y guarda. Los informes que lleguen desde ahí se cruzan solos después del ETL. |
 | Revisar sus deudores | Haz clic en ese **8**: se abre **Excepciones** filtrada por ese informe. En **Casos TGR**, escribe el N° del informe para ver sus 20 casos cargados y sus 7 filas rechazadas. |
 
 Para probar con otros archivos usa **solo** los de `Aplicación\data\simulados\` (su README explica qué prueba cada uno). **Nunca** cargues datos reales de deudores.

@@ -16,6 +16,7 @@ from sqlalchemy.exc import DBAPIError
 
 from ... import bitacora
 from ...db import transaccion
+from ..cruce.servicio import cruzar_sin_fallar
 from ..ia.reglas import motivo_por_reglas, reglas_activas
 from ..ia.servicio import analizar_sin_fallar
 from .reglas import COLUMNAS_CSV, COLUMNAS_STG, Caso, Rechazo, normalizar
@@ -230,6 +231,7 @@ def procesar_archivo(conexion: Connection, id_archivo: int, almacen: Path) -> Re
                                {"id_archivo": id_archivo, "archivo": documento["nombre_archivo"], "motivo": str(error)})
         raise
     analizar_sin_fallar(conexion, id_archivo)
+    cruzar_sin_fallar(conexion, id_archivo)
     return resumen
 
 

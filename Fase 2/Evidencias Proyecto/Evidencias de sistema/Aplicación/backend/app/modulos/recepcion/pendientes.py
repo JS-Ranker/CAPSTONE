@@ -13,6 +13,7 @@ from sqlalchemy import Connection, text
 
 from ... import bitacora
 from ...db import transaccion
+from ..cruce.servicio import cruzar_sin_fallar
 from ..extraccion import ResultadoExtraccion, escribir_plantilla, extraer
 from ..etl.carga import PROCESADO, ErrorFormatoCsv, ejecutar_filas
 from ..etl.desde_informe import filas_para_etl
@@ -114,8 +115,9 @@ def extraer_pendiente(conexion: Connection, documento: DocumentoPendiente, almac
                 "id_archivo": documento.id_archivo, "archivo": documento.nombre_archivo, "motivo": str(error)})
             return ERROR_EXTRACCION
         _cambiar_estado(conexion, documento.id_archivo, PROCESADO, resumen.filas_leidas)
-    # Fuera de la transacción: si la IA falla, el informe igual queda procesado (RF08, CU03 paso 6).
+    # Fuera de la transacción: si la IA o el cruce fallan, el informe igual queda procesado (RF08, CU03 paso 6).
     analizar_sin_fallar(conexion, documento.id_archivo)
+    cruzar_sin_fallar(conexion, documento.id_archivo)
     return PROCESADO
 
 

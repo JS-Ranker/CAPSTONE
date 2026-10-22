@@ -10,8 +10,9 @@ from app.config import BACKEND_DIR
 from app.db import engine
 
 SIMULADOS = BACKEND_DIR.parent / "data" / "simulados"
-# En orden de borrado (las hijas primero). Son de los scripts de Tomás y de 06_etl.sql, 07_revisiones.sql y 09_ia.sql.
-TABLAS_ETL = ("ia.reglas", "ia.insights", "ia.analisis", "etl.revisiones", "etl.resultados", "etl.ejecuciones",
+# En orden de borrado (las hijas primero). Son de los scripts de Tomás y de 06_etl.sql, 07_revisiones.sql, 09_ia.sql
+# y 10_cruce.sql.
+TABLAS_ETL = ("cruce.descuentos", "cruce.resultados", "cruce.ejecuciones", "cruce.utm", "banco.cuentas", "ia.reglas", "ia.insights", "ia.analisis", "etl.revisiones", "etl.resultados", "etl.ejecuciones",
               "core.casos_tgr", "stg.casos_tgr")
 
 
@@ -50,7 +51,7 @@ def conexion_etl(conexion):
     for tabla in TABLAS_ETL:
         if conexion.execute(text("SELECT OBJECT_ID(:tabla, 'U')"), {"tabla": tabla}).scalar_one() is None:
             pytest.skip(f"Falta la tabla {tabla}: ejecutar creacion_db.sql, recepcion_datos_input.sql, "
-                        "creacion_tablas.sql, 06_etl.sql, 07_revisiones.sql y 09_ia.sql")
+                        "creacion_tablas.sql, 06_etl.sql, 07_revisiones.sql, 09_ia.sql y 10_cruce.sql")
     return conexion
 
 

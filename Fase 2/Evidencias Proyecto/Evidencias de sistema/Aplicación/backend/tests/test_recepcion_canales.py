@@ -41,7 +41,9 @@ def test_normaliza_un_pdf_con_texto_pendiente(conexion, almacen):
         "SELECT TOP 1 detalle_cambio FROM dbo.Bitacora_Trazabilidad WHERE accion_ejecutada = 'Ejecución ETL' "
         "ORDER BY id_bitacora DESC")).scalar_one()
     assert json.loads(detalle)["cargadas"] == 25
-    assert ultima_bitacora(conexion)[0] == "Análisis IA"          # la IA analiza el informe después del ETL
+    acciones = [a for (a,) in conexion.execute(text(
+        "SELECT TOP 2 accion_ejecutada FROM dbo.Bitacora_Trazabilidad ORDER BY id_bitacora DESC"))]
+    assert acciones == ["Cruce pendiente", "Análisis IA"]  # después del ETL, la IA y luego el cruce (sin UTM)
     assert conexion.execute(text("SELECT COUNT(*) FROM core.casos_tgr")).scalar_one() == 25
 
 

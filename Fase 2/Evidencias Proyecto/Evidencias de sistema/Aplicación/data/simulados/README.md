@@ -48,6 +48,6 @@ Las columnas son las que, según el equipo, vienen de la TGR en el CSV del ETL d
 | `no_estructurados/22_informe_pdf_texto_totales_no_cuadran.pdf` | El total impreso no cuadra | Error de Extracción |
 | `no_estructurados/23_informe_escaneado.pdf` | Solo imagen (OCR) | Procesado; los dudosos, a revisión |
 | `no_estructurados/24_foto_informe.jpg` | Foto con perspectiva, sombra y 3 montos manchados | Error de Extracción |
-| `banco_generico/cuentas_core_bancario.csv` | Cuentas de Banco Genérico | Base provisoria: el cruce con saldos y la regla de 0,5 UTM viene después |
+| `banco_generico/cuentas_core_bancario.csv` | Core bancario de Banco Genérico: cuentas con tipo, saldo y estado de los deudores de 01, 02, 03, 04, 05, 08, 13, 21 y 23. Por RUT, ~15 % no es cliente, ~20 % tiene saldo bajo 0,5 UTM (~$35.000), el resto alcanza a cubrir su deuda o la cubre en parte; algunas cuentas bloqueadas o cerradas (el cruce las ignora). Se carga con `python scripts/cargar_core_bancario.py` | — |
 
 `manifiesto.json` trae el resultado esperado de cada deudor (`Cargado`, `Revisión manual`, `Rechazado` o `Duplicado`) y lo usan las pruebas (`backend/tests/test_extraccion.py`, `test_datos_simulados.py` y `test_recepcion_canales.py`).

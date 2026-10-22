@@ -9825,6 +9825,6 @@
   ],
   "banco_generico": {
     "archivo": "banco_generico/cuentas_core_bancario.csv",
-    "cuentas": 440
+    "cuentas": 936
   }
 }
