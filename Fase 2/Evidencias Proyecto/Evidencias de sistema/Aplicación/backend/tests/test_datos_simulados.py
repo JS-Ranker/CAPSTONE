@@ -9,7 +9,7 @@ import pytest
 from docx import Document
 from openpyxl import load_workbook
 
-from scripts.generar_datos_simulados import (
+from tests.fabrica_informes import (
     CARGADO, COLUMNAS, DUPLICADO, RECHAZADO, REVISION, TITULOS, digito_verificador, generar,
 )
 

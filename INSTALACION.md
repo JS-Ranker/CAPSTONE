@@ -212,9 +212,9 @@ Abre <http://localhost:5173>. Se muestra la pantalla **Ingesta de documentos TGR
 | <http://localhost:8000/api/health> | `{"estado":"ok", ...}` |
 | <http://localhost:8000/api/health/db> | `{"estado":"ok","base_datos":"TTDH_Automation","roles":4}` |
 | <http://localhost:5173> | Al pie del menú, la API y la base de datos aparecen conectadas. |
-| Cargar un informe de prueba | Arrastra `Aplicación\data\simulados\estructurados\04_informe_casos_borde.xlsx` a la zona de carga. En unos segundos aparece en **Informes recibidos** como **Procesado**, con **8** deudores por revisar. |
+| Cargar una resolución de prueba | Arrastra `Aplicación\data\simulados\no_estructurados\01_resolucion_pdf_texto.pdf` a la zona de carga. En unos segundos aparece en **Informes recibidos** como **Procesado**, con **1** deudor cargado. |
 | Ingresar la UTM | En **Cruce Banco**, ingresa la UTM del mes actual (por ejemplo `69751`) y guarda. Los informes que lleguen desde ahí se cruzan solos después del ETL. |
-| Revisar sus deudores | Haz clic en ese **8**: se abre **Excepciones** filtrada por ese informe. En **Casos TGR**, escribe el N° del informe para ver sus 20 casos cargados y sus 7 filas rechazadas. |
+| Revisar sus deudores | En **Casos TGR**, escribe el N° del informe para ver el caso cargado (RUT, monto, tesorería). Para ver la Bandeja, carga `estructurados\17_resolucion_sin_monto.xlsx`: el ETL la rechaza por falta de monto y aparece en **Excepciones**. |
 
 Para probar con otros archivos usa **solo** los de `Aplicación\data\simulados\` (su README explica qué prueba cada uno). **Nunca** cargues datos reales de deudores.
 

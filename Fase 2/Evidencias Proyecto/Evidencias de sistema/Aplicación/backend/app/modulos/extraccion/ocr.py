@@ -26,6 +26,7 @@ from app.config import settings
 from .documento import columna_desde_titulo, leer_encabezado_y_totales
 from .normalizacion import normalizar, rut_valido
 from .plantilla import CAMPOS_CRITICOS, COLUMNAS_PLANTILLA, UMBRAL_CONFIANZA, RegistroExtraido, ResultadoExtraccion
+from .resolucion import TextoLeido, resultado_desde_texto
 
 RESOLUCION_DPI = 200
 IDIOMA = "spa"
@@ -239,5 +240,40 @@ def extraer_de_imagenes(paginas: list[np.ndarray], tipo_documento: str) -> Resul
     return resultado
 
 
+def leer_texto(paginas: list[np.ndarray]) -> TextoLeido:
+    """Texto corrido de las páginas, con la confianza de Tesseract en cada palabra (resoluciones sin tabla)."""
+    _configurar_tesseract()
+    partes: list[str] = []
+    palabras: list[tuple[int, int, float]] = []
+    largo = 0
+
+    def agregar(fragmento: str) -> int:
+        nonlocal largo
+        partes.append(fragmento)
+        largo += len(fragmento)
+        return largo
+
+    for pagina in paginas:
+        datos = pytesseract.image_to_data(pagina, lang=IDIOMA, config="--psm 4", output_type=pytesseract.Output.DICT)
+        linea_anterior = None
+        for texto, conf, bloque, parrafo, linea in zip(datos["text"], datos["conf"], datos["block_num"],
+                                                       datos["par_num"], datos["line_num"]):
+            if not texto.strip():
+                continue
+            clave = (bloque, parrafo, linea)
+            if linea_anterior is None:
+                separador = "\n" if largo else ""
+            else:
+                separador = " " if clave == linea_anterior else "\n"
+            linea_anterior = clave
+            inicio = agregar(separador + texto) - len(texto)
+            palabras.append((inicio, inicio + len(texto), max(float(conf), 0.0)))
+    return TextoLeido("".join(partes), palabras)
+
+
 def extraer_escaneado(ruta: Path) -> ResultadoExtraccion:
-    return extraer_de_imagenes(paginas_pdf(ruta), "PDF escaneado")
+    """PDF escaneado: con tabla se lee por celdas; sin tabla es una resolución y se lee el texto."""
+    paginas = paginas_pdf(ruta)
+    if detectar_grilla(enderezar(paginas[0])) is None:
+        return resultado_desde_texto(leer_texto(paginas), "PDF escaneado")
+    return extraer_de_imagenes(paginas, "PDF escaneado")

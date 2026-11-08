@@ -1,53 +1,69 @@
-# Datos simulados
+# Documentos simulados de la TGR
 
-Informes de deudores de la TGR **ficticios** para desarrollar y probar TTDH Automation. No contienen datos reales: los RUT están entre 40.000.000 y 49.999.999, un rango que hoy no se asigna a personas ni a empresas, y todos los documentos dicen "DOCUMENTO SIMULADO".
+Resoluciones de retención **ficticias**, con el diseño de los documentos del banco: un deudor por documento, en dos
+páginas (expediente y RUT en los "vistos", monto en el "resuelvo", ID de demanda, N° de resolución, firma y fecha en la
+segunda página). El diseño lo da `backend/scripts/1. creacion documentos extendido.py` (de David); `backend/scripts/generar_datos_simulados.py`
+parte de ese PDF y arma las variantes por formato y por escenario.
 
-Se generan con un script, así que **no se editan a mano**:
-
-```bash
+```
 cd backend
-python scripts/generar_datos_simulados.py                  # regenera esta carpeta (mismo resultado siempre)
-python scripts/generar_datos_simulados.py --grande 12000   # agrega 90_informe_volumen.csv para pruebas de rendimiento
+python scripts/generar_datos_simulados.py            # vuelve a escribir esta carpeta (misma semilla, mismo resultado)
 ```
 
-## El informe de deudores
+`manifiesto.json` dice, para cada archivo, qué debe pasar: estado de la extracción, si queda para revisión manual, de
+qué archivo es reenvío y los datos esperados del deudor. Las pruebas (`backend/tests/test_resoluciones.py`) comparan la
+extracción con ese manifiesto y comprueban que esta carpeta sea la que produce el script.
 
-La TGR envía por correo un informe con un deudor por fila, en cualquiera de estos formatos: Excel, CSV, TXT, Word, PDF con texto, PDF escaneado o foto. Todos tienen la misma estructura:
+Todo es ficticio: los RUT van de 40.000.000 a 49.999.999 (fuera de los rangos de personas y empresas) y el banco se llama
+"Banco Genérico". **Nunca** agregar documentos reales.
 
-| Parte | Contenido |
-|---|---|
-| Encabezado | `Lote: <lote>   Fecha de generación: <dd-mm-aaaa>   Registros: <n>` |
-| Títulos | `RUT · Nombre · ID Demanda · N° Resolución · Monto Solicitado · Tipo Embargo · Expediente · Tesorería · Fecha Oficio` |
-| Detalle | Un deudor por fila |
-| Totales | `TOTALES   Registros: <n>   Monto total: $ <suma>` (sumatorias de control, RN05) |
+## `no_estructurados/`
 
-Las columnas son las que, según el equipo, vienen de la TGR en el CSV del ETL de Tomás. El resto de las columnas de ese CSV (fecha de ingreso, múltiples roles, revisión manual, campos faltantes, remitente…) las agrega el proceso al extraer el informe (`backend/app/modulos/etl/desde_informe.py`).
-
-- RUT `12345678-9` (en PDF, imágenes y Word se imprime con puntos). Monto en pesos, entero. Expediente `número-año localidad`.
-- Datos críticos (RN05): RUT, monto solicitado y expediente. Si se leen con confianza bajo 90 %, o si falta un dato, el deudor se carga marcado para **revisión manual** y queda en la Bandeja de Excepciones.
-- Las reglas del ETL (RUT válido, expediente con formato, fechas, duplicados) son las de `Normalizar_TGR.ktr`.
-
-## Archivos
-
-| Archivo | Qué prueba | Resultado esperado del informe |
+| Archivo | Qué es | Resultado esperado |
 |---|---|---|
-| `estructurados/01_informe_valido.xlsx` | 150 deudores, celdas numéricas y de fecha | Procesado |
-| `estructurados/02_informe_valido.csv` | 120 deudores, UTF-8 separado por `;` | Procesado |
-| `estructurados/03_informe_latin1.txt` | 80 deudores, ISO-8859-1 separado por `\|` | Procesado |
-| `estructurados/04_informe_casos_borde.xlsx` | Un caso por regla: RUT con puntos, k minúscula, DV malo, sin monto, monto en palabras, fecha inexistente, sin fecha, expediente sin formato, sin nombre, mismo RUT con dos expedientes, duplicado… | Procesado (cada deudor con su resultado en el manifiesto) |
-| `estructurados/05_informe_mes2_con_repetidos.csv` | Repite 5 deudores de 02 | Procesado |
-| `estructurados/06_informe_totales_no_cuadran.csv` | La suma de los totales no cuadra | Error de Extracción |
-| `estructurados/07_informe_cantidad_no_cuadra.xlsx` | Declara 43 deudores y trae 40 | Error de Extracción |
-| `estructurados/08_informe_sin_totales.csv` | Sin la línea TOTALES | Procesado |
-| `estructurados/09_informe_columnas_incorrectas.csv` | Falta Expediente y el monto se llama "Importe" | Error de Extracción |
-| `estructurados/10_informe_corrupto.xlsx` | Bytes aleatorios | Error de Extracción |
-| `estructurados/11_informe_vacio.csv` | Sin deudores | Error de Extracción |
-| `estructurados/12_informe_valido_reenvio.xlsx` | Copia exacta de 01 | Rechazado en la recepción (ya recibido) |
-| `estructurados/13_informe_valido.docx` | 40 deudores en una tabla de Word | Procesado |
-| `no_estructurados/21_informe_pdf_texto.pdf` | Tabla con texto seleccionable | Procesado |
-| `no_estructurados/22_informe_pdf_texto_totales_no_cuadran.pdf` | El total impreso no cuadra | Error de Extracción |
-| `no_estructurados/23_informe_escaneado.pdf` | Solo imagen (OCR) | Procesado; los dudosos, a revisión |
-| `no_estructurados/24_foto_informe.jpg` | Foto con perspectiva, sombra y 3 montos manchados | Error de Extracción |
-| `banco_generico/cuentas_core_bancario.csv` | Core bancario de Banco Genérico: cuentas con tipo, saldo y estado de los deudores de 01, 02, 03, 04, 05, 08, 13, 21 y 23. Por RUT, ~15 % no es cliente, ~20 % tiene saldo bajo 0,5 UTM (~$35.000), el resto alcanza a cubrir su deuda o la cubre en parte; algunas cuentas bloqueadas o cerradas (el cruce las ignora). Se carga con `python scripts/cargar_core_bancario.py` | — |
+| `01_resolucion_pdf_texto.pdf` | PDF con texto, el documento base | Normalizado, los 9 datos leídos sin OCR |
+| `02_resolucion_pdf_texto_otra_tesoreria.pdf` | Otro deudor, otra tesorería y otro monto | Normalizado |
+| `03_resolucion_pdf_texto_reenvio.pdf` | Copia idéntica del 01 | La recepción lo rechaza como duplicado |
+| `04_resolucion_pdf_texto_monto_anomalo.pdf` | Monto de 480 millones | Normalizado; la IA lo marca como anomalía |
+| `05_resolucion_pdf_corrupto.pdf` | PDF dañado | Error de Extracción: revisión manual del documento |
+| `06_resolucion_escaneada.pdf` | Escaneo limpio, apenas girado | Normalizado (OCR) |
+| `07_resolucion_escaneada_con_ruido.pdf` | Escaneo con ruido y giro mayor | Normalizado (OCR) |
+| `08_resolucion_foto.jpg` | Foto de celular de las dos hojas, con perspectiva | Normalizado (OCR) |
+| `09_resolucion_foto_con_sombra.jpg` | Foto con más inclinación y sombra | Normalizado (OCR) |
+| `10_resolucion_captura.png` | Captura de pantalla nítida de las dos hojas | Normalizado (OCR) |
+| `11_resolucion_captura_baja_resolucion.png` | Captura reducida a poco más de 80 dpi | Normalizado, con confianza baja: queda para revisión |
 
-`manifiesto.json` trae el resultado esperado de cada deudor (`Cargado`, `Revisión manual`, `Rechazado` o `Duplicado`) y lo usan las pruebas (`backend/tests/test_extraccion.py`, `test_datos_simulados.py` y `test_recepcion_canales.py`).
+## `estructurados/`
+
+En Word y TXT va el mismo texto de la resolución; en Excel y CSV, filas `campo; valor`.
+
+| Archivo | Qué es | Resultado esperado |
+|---|---|---|
+| `12_resolucion_valida.xlsx` | Excel válido | Normalizado |
+| `13_resolucion_valida_reenvio.xlsx` | Copia idéntica del 12 | Rechazado como duplicado |
+| `14_resolucion_valida.csv` | CSV válido (UTF-8, `;`) | Normalizado |
+| `15_resolucion_valida.docx` | Word válido | Normalizado |
+| `16_resolucion_latin1.txt` | Texto plano ISO-8859-1 | Normalizado |
+| `17_resolucion_sin_monto.xlsx` | Falta el monto solicitado | El ETL lo rechaza (RN05) y queda en la Bandeja de Excepciones |
+| `18_resolucion_sin_monto.docx` | El texto no trae el monto | Igual que el 17 |
+| `19_resolucion_rut_invalido.csv` | El dígito verificador no corresponde | El ETL lo rechaza (RN01) |
+| `20_resolucion_corrupta.xlsx` | Excel dañado | Error de Extracción: revisión manual del documento (RN04) |
+| `21_resolucion_vacia.csv` | Archivo vacío | Error de Extracción |
+| `22_informe_otro_formato.csv` | No es una resolución de la TGR | Error de Extracción |
+
+## `banco_generico/`
+
+`cuentas_core_bancario.csv` es el core bancario simulado (se carga con `backend/scripts/cargar_core_bancario.py`). Trae
+las cuentas de los deudores de los documentos válidos, con saldos que recorren la regla del cruce:
+
+- clientes con saldo suficiente para cubrir la deuda (se descuenta todo);
+- clientes con saldo que cubre solo una parte (se descuenta el saldo);
+- clientes con saldo total bajo 0,5 UTM (no se descuenta nada);
+- deudores que no son clientes del banco (sin cuentas), y algunas cuentas bloqueadas o cerradas que el cruce ignora;
+- además, clientes del banco que no tienen deuda.
+
+## Para las pruebas con varios deudores por archivo
+
+Las pruebas de la lectura de tablas, de las sumatorias de control, del ETL por lotes y de la IA usan informes con tabla
+(varios deudores por archivo) que arma `backend/tests/fabrica_informes.py` en la caché de pytest. No son documentos del
+banco y no se guardan aquí.

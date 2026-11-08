@@ -33,9 +33,12 @@ def extraer(ruta: Path) -> ResultadoExtraccion:
     """Lee un informe de deudores en cualquiera de los formatos admitidos."""
     extension = ruta.suffix.lower()
     if extension == ".pdf":
-        if tiene_texto(ruta):
-            return extraer_pdf_texto(ruta)
-        return extraer_escaneado(ruta)
+        try:
+            con_texto = tiene_texto(ruta)
+        except Exception as error:  # pdfminer lanza varios tipos de error ante un PDF dañado
+            return ResultadoExtraccion(tipo_documento="PDF con texto", errores=[
+                f"El PDF está dañado o no es un PDF válido ({type(error).__name__})."])
+        return extraer_pdf_texto(ruta) if con_texto else extraer_escaneado(ruta)
     if extension in EXTENSIONES_IMAGEN:
         return extraer_foto(ruta)
     if extension in TIPOS_ESTRUCTURADOS:

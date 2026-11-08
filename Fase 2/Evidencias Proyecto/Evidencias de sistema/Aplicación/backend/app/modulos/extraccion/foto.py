@@ -9,14 +9,17 @@ import cv2
 import numpy as np
 from PIL import Image, ImageOps
 
-from .ocr import extraer_de_imagenes
+from .ocr import detectar_grilla, enderezar, extraer_de_imagenes, leer_texto
 from .plantilla import ResultadoExtraccion
+from .resolucion import resultado_desde_texto
 
 ANCHO_OBJETIVO = 2339  # px: una hoja A4 apaisada a 200 dpi, la resolución de los escaneos
 AREA_MINIMA_HOJA = 0.3  # fracción de la foto que debe ocupar la hoja para considerarla detectada
 # Margen que se conserva alrededor de lo detectado, como fracción de su tamaño: arriba va el
 # encabezado (lote, fecha) y abajo los totales.
 MARGEN_LADOS, MARGEN_ARRIBA, MARGEN_ABAJO = 0.03, 0.22, 0.10
+ANCHO_RESOLUCION = 1654  # px: una hoja A4 vertical a 200 dpi (las resoluciones de la TGR no llevan tabla)
+SIN_MARGEN = (0.0, 0.0, 0.0)
 
 
 def cargar_imagen(ruta: Path) -> np.ndarray:
@@ -35,7 +38,8 @@ def _ordenar_esquinas(puntos: np.ndarray) -> np.ndarray:
                     dtype=np.float32)
 
 
-def enderezar_hoja(gris: np.ndarray) -> np.ndarray:
+def enderezar_hoja(gris: np.ndarray, ancho_objetivo: int = ANCHO_OBJETIVO,
+                   margenes: tuple[float, float, float] = (MARGEN_LADOS, MARGEN_ARRIBA, MARGEN_ABAJO)) -> np.ndarray:
     """Detecta la hoja contra el fondo y corrige la perspectiva.
 
     Si no encuentra una hoja (por ejemplo, la foto ya viene recortada), solo la lleva a la
@@ -50,7 +54,7 @@ def enderezar_hoja(gris: np.ndarray) -> np.ndarray:
     contorno = max((cv2.convexHull(c) for c in contornos), key=cv2.contourArea, default=None)
     area = cv2.contourArea(contorno) if contorno is not None else 0
     if not AREA_MINIMA_HOJA * alto * ancho <= area <= 0.98 * alto * ancho:
-        return cv2.resize(gris, None, fx=ANCHO_OBJETIVO / ancho, fy=ANCHO_OBJETIVO / ancho,
+        return cv2.resize(gris, None, fx=ancho_objetivo / ancho, fy=ancho_objetivo / ancho,
                           interpolation=cv2.INTER_CUBIC)
 
     aproximado = cv2.approxPolyDP(contorno, 0.02 * cv2.arcLength(contorno, True), True)
@@ -85,4 +89,8 @@ def preparar_foto(ruta: Path) -> np.ndarray:
 
 
 def extraer_foto(ruta: Path) -> ResultadoExtraccion:
+    """Foto o captura de un informe: con tabla se lee por celdas; sin tabla es una resolución y se lee el texto."""
+    hoja = quitar_sombra(enderezar_hoja(cargar_imagen(ruta), ANCHO_RESOLUCION, SIN_MARGEN))
+    if detectar_grilla(enderezar(hoja)) is None:
+        return resultado_desde_texto(leer_texto([hoja]), "Imagen")
     return extraer_de_imagenes([preparar_foto(ruta)], "Imagen")

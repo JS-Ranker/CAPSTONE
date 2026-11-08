@@ -168,7 +168,7 @@ CAPSTONE/
 │           │   │   └── .env.example      # plantilla de configuración (copiar como .env)
 │           │   ├── frontend/         # React + Vite: Ingesta, Casos TGR y Bandeja de Excepciones
 │           │   └── data/
-│           │       ├── simulados/    # informes de deudores ficticios en todos los formatos + manifiesto
+│           │       ├── simulados/    # resoluciones de la TGR ficticias en todos los formatos + manifiesto
 │           │       └── muestra_tgr/  # CSV de muestra con el formato del ETL de Tomás
 │           └── Base de datos/        # scripts SQL Server (01-08 y los de Tomás) y el ETL original
 │                                     # en Pentaho (.ktr), que la aplicación reproduce en Python

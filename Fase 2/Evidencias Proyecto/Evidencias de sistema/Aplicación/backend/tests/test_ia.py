@@ -17,6 +17,7 @@ from app.modulos.ia.reglas import MONTO_MAXIMO, Regla, motivo_por_reglas
 from app.modulos.ia.tendencias import CALIDAD, TENDENCIA, motivo_base, tendencias
 from app.modulos.recepcion import api as recepcion_api
 from app.modulos.recepcion import procesar_pendientes
+from app.config import BACKEND_DIR
 from tests.conftest import SIMULADOS
 from tests.test_recepcion import recibir
 
@@ -173,7 +174,7 @@ def test_aplicar_la_sugerencia_cambia_el_siguiente_proceso(con_historial):
         servicio.APLICADA
     valor = json.loads(con_regla["regla_sugerida"])["valor"]
 
-    ejecutar(conexion, SIMULADOS.parent / "muestra_tgr" / "resultado_tgr_20261012.csv")
+    ejecutar(conexion, BACKEND_DIR.parent / "data" / "muestra_tgr" / "resultado_tgr_20261012.csv")
     marcados = conexion.execute(text(
         "SELECT monto_solicitado, rev_manual_bit, camp_falt FROM core.casos_tgr WHERE rut_limpio IN "
         "(SELECT rut FROM stg.casos_tgr WHERE archivo_origen = 'resultado_tgr_20261012.csv')")).all()

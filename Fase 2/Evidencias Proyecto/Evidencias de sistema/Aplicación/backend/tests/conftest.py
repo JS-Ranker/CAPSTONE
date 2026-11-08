@@ -9,8 +9,13 @@ from sqlalchemy.exc import SQLAlchemyError
 from app.config import BACKEND_DIR
 from app.db import engine
 from app.modulos.cruce import utm_oficial
+from tests.fabrica_informes import CARPETA_SALIDA, generar
 
-SIMULADOS = BACKEND_DIR.parent / "data" / "simulados"
+# Informes con tabla (varios deudores por archivo) para probar la lógica de tablas, el ETL y la IA. No son los
+# documentos del banco (esos están en data/simulados): se escriben en la caché de pytest la primera vez.
+SIMULADOS = CARPETA_SALIDA
+if not (SIMULADOS / "manifiesto.json").is_file():
+    generar(SIMULADOS, semilla=2026)
 # En orden de borrado (las hijas primero). Son de los scripts de Tomás y de 06_etl.sql, 07_revisiones.sql, 09_ia.sql
 # y 10_cruce.sql.
 TABLAS_ETL = ("cruce.descuentos", "cruce.resultados", "cruce.ejecuciones", "cruce.utm", "banco.cuentas", "ia.reglas", "ia.insights", "ia.analisis", "etl.revisiones_documento", "etl.extraccion_filas", "etl.extracciones", "etl.revisiones", "etl.resultados", "etl.ejecuciones",
@@ -70,7 +75,7 @@ def almacen(tmp_path) -> Path:
 
 
 def simulado(nombre: str) -> Path:
-    """Ruta de un archivo de data/simulados (estructurados/ o no_estructurados/)."""
+    """Ruta de un informe con tabla de la fábrica de pruebas (estructurados/ o no_estructurados/)."""
     for carpeta in ("estructurados", "no_estructurados"):
         ruta = SIMULADOS / carpeta / nombre
         if ruta.is_file():

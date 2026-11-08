@@ -22,8 +22,9 @@ opencv-python-headless>=4.10 # detección de la grilla y corrección de perspect
 # IA - detección de anomalías (RF08)
 scikit-learn>=1.5
 
-# Datos simulados (scripts/generar_datos_simulados.py)
-fpdf2>=2.8                   # nóminas en PDF con texto
+# Datos simulados (scripts/generar_datos_simulados.py y "1. creacion documentos extendido.py")
+fpdf2>=2.8                   # informes con tabla en PDF (tests/fabrica_informes.py)
+reportlab>=4.2               # PDF de las resoluciones de la TGR (scripts/1. creacion documentos extendido.py)
 
 # Pruebas
 pytest>=8.3

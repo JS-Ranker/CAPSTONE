@@ -13,7 +13,7 @@ from app.modulos.etl.reglas import COLUMNAS_STG
 from app.modulos.extraccion import COLUMNAS_PLANTILLA, FormatoNoSoportado, escribir_plantilla, extraer
 from app.modulos.extraccion.normalizacion import normalizar_fecha, normalizar_monto, normalizar_rut, rut_valido
 from app.modulos.extraccion.plantilla import CAMPOS_CRITICOS, RegistroExtraido, ResultadoExtraccion
-from scripts.generar_datos_simulados import (
+from tests.fabrica_informes import (
     COLUMNAS, REVISION, Generador, dibujar_informe, escribir_fotografia, generar,
 )
 

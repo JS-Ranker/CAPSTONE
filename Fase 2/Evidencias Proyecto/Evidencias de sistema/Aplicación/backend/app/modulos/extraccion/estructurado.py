@@ -13,6 +13,7 @@ from pathlib import Path
 from .documento import columna_desde_titulo, leer_encabezado_y_totales
 from .normalizacion import limpiar, normalizar
 from .plantilla import COLUMNAS_PLANTILLA, RegistroExtraido, ResultadoExtraccion
+from .resolucion import TextoLeido, es_resolucion, resultado_desde_pares, resultado_desde_texto
 
 TIPOS = {".xlsx": "Excel", ".csv": "CSV", ".txt": "TXT", ".docx": "Word"}
 _DELIMITADORES = ";|,\t"
@@ -81,6 +82,18 @@ def _filas_word(ruta: Path) -> list[list[str]]:
     return filas
 
 
+def _texto_word(ruta: Path) -> str:
+    return "\n".join(" ".join(fila) for fila in _filas_word(ruta))
+
+
+def _texto_plano(ruta: Path) -> str:
+    datos = ruta.read_bytes()
+    try:
+        return datos.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        return datos.decode("latin-1")
+
+
 def leer_filas(ruta: Path) -> list[list[str]]:
     extension = ruta.suffix.lower()
     if extension == ".xlsx":
@@ -95,10 +108,19 @@ def leer_filas(ruta: Path) -> list[list[str]]:
 def extraer_estructurado(ruta: Path) -> ResultadoExtraccion:
     resultado = ResultadoExtraccion(tipo_documento=TIPOS.get(ruta.suffix.lower(), ruta.suffix))
     try:
+        if ruta.suffix.lower() in (".txt", ".docx"):  # una resolución viene como texto corrido
+            texto = _texto_plano(ruta) if ruta.suffix.lower() == ".txt" else _texto_word(ruta)
+            if es_resolucion(texto):
+                return resultado_desde_texto(TextoLeido(texto), resultado.tipo_documento)
         filas = leer_filas(ruta)
     except ArchivoIlegible as error:
         resultado.errores.append(str(error))
         return resultado
+
+    tiene_titulos = any(set(COLUMNAS_PLANTILLA) <= {columna_desde_titulo(celda) for celda in fila} for fila in filas)
+    if not tiene_titulos and (por_pares := resultado_desde_pares(filas, resultado.tipo_documento,
+                                                                  columna_desde_titulo)):
+        return por_pares  # Excel o CSV de una resolución: filas "campo, valor"
 
     columnas: list[str | None] | None = None
     fuera_de_tabla: list[str] = []

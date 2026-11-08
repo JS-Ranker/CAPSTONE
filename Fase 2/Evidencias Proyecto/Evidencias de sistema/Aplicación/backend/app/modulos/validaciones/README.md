@@ -17,7 +17,7 @@ Antes de este módulo, el **ETL (Tomás)** se encarga de:
 - revisar el **archivo completo** (RN04): estructura, encabezado, pie, columnas y codificación;
 - verificar que los totales cuadren (CU03 pasos 1 a 3).
 
-Si el archivo falla, se marca "Error" completo y **no llega a validaciones**. Son los casos 06, 07, 08, 09 y 10 de los datos simulados.
+Si el archivo falla, se marca "Error" completo y **no llega a validaciones**. Son los archivos dañados o vacíos de los datos simulados (`05`, `20`, `21` y `22`).
 
 **A este módulo le llegan solo los registros de archivos sanos.** La división entre ETL y validaciones es una propuesta basada en los encabezados de cada módulo: confírmenla entre ustedes.
 
@@ -114,19 +114,12 @@ La tabla `Registros_TGR` (en `Base de datos/02_tablas.sql`) **no alcanza** para 
 
 ## Cómo probarlo: los resultados correctos ya existen
 
-En `data/simulados/` hay nóminas de prueba, y `manifiesto.json` dice **qué estado debe quedar cada registro** (campo `estado_esperado`):
-
-| Archivo | Resultado esperado |
-|---|---|
-| `04_nomina_casos_borde.xlsx` | **Un caso por regla:** 20 válidos, 10 inválidos y 1 duplicado, cada uno con su motivo |
-| `05_nomina_lote2_con_duplicados.csv` | 55 válidos y 5 duplicados (si el 02 se procesó antes) |
-| `01`, `02`, `03`, `21`, `23` | Todos válidos |
-| `24_foto_nomina.jpg` | 3 registros en Revisión de Extracción |
+En `data/simulados/` hay resoluciones de la TGR de prueba (un deudor por documento), y `manifiesto.json` dice **qué debe pasar con cada archivo**: estado de la extracción, si queda para revisión, de qué archivo es reenvío y los datos esperados del deudor. Por ejemplo, `19_resolucion_rut_invalido.csv` debe ser rechazada por RN01, `17_resolucion_sin_monto.xlsx` y `18_resolucion_sin_monto.docx` por falta de monto, y `03_resolucion_pdf_texto_reenvio.pdf` rechazarse como duplicado. El detalle de cada archivo está en `data/simulados/README.md`.
 
 Las pruebas van en `backend/tests/` con pytest. En `tests/conftest.py` está la fixture `conexion`: abre una transacción en SQL Server y la revierte al final, así las pruebas no dejan datos.
 
 ## Por definir en equipo
-1. Qué pasa con una nómina sin registros (`11_nomina_vacia.csv`): el ERS no lo dice.
+1. Qué pasa con un archivo vacío (`21_resolucion_vacia.csv`): el ERS no lo dice.
 2. La prioridad entre estados cuando un registro falla varias reglas.
 3. El formato de entrega entre el ETL y validaciones.
 4. Los cambios en `Registros_TGR`.

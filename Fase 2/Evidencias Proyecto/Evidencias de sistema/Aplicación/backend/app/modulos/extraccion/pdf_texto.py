@@ -6,6 +6,7 @@ import pdfplumber
 from .documento import columna_desde_titulo, leer_encabezado_y_totales
 from .normalizacion import limpiar, normalizar
 from .plantilla import COLUMNAS_PLANTILLA, RegistroExtraido, ResultadoExtraccion
+from .resolucion import TextoLeido, es_resolucion, resultado_desde_texto
 
 
 def tiene_texto(ruta: Path) -> bool:
@@ -19,6 +20,9 @@ def extraer_pdf_texto(ruta: Path) -> ResultadoExtraccion:
     with pdfplumber.open(ruta) as pdf:
         textos = [pagina.extract_text() or "" for pagina in pdf.pages]
         tablas = [tabla for pagina in pdf.pages for tabla in pagina.extract_tables()]
+
+    if es_resolucion("\n".join(textos)):  # resolución de la TGR: un deudor, sin tabla
+        return resultado_desde_texto(TextoLeido("\n".join(textos)), resultado.tipo_documento)
 
     leer_encabezado_y_totales(resultado, "\n".join(textos))
 

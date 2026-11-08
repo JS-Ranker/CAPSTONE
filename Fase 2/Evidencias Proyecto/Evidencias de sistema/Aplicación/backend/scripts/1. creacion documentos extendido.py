@@ -24,10 +24,6 @@ RUTA_SALIDA = (
     / "documentos_generados"
 )
 
-RUTA_SALIDA.mkdir(
-    parents=True,
-    exist_ok=True
-)
 
 
 # ============================================================
@@ -585,7 +581,7 @@ def dibujar_pagina_1(
     pdf.drawString(
         35 * mm,
         y,
-        "BANCO ESTADO."
+        "BANCO GENÉRICO."
     )
 
     y -= 10 * mm
@@ -1144,6 +1140,8 @@ def crear_pdf(
         / nombre_archivo
     )
 
+    RUTA_SALIDA.mkdir(parents=True, exist_ok=True)
+
     pdf = canvas.Canvas(
         str(ruta_pdf),
         pagesize=A4
@@ -1188,6 +1186,8 @@ def crear_pdf(
 # ============================================================
 
 def main():
+
+    RUTA_SALIDA.mkdir(parents=True, exist_ok=True)
 
     # Los RUT no se repiten dentro de una misma ejecución.
     ruts_utilizados = set()
