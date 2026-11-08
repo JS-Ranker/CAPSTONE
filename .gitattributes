@@ -1,0 +1,7 @@
+# Los documentos simulados se guardan byte a byte: una conversion de saltos de linea corrompe los PDF y rompe los reenvios identicos.
+Fase[[:space:]]2/Evidencias[[:space:]]Proyecto/Evidencias[[:space:]]de[[:space:]]sistema/Aplicación/data/simulados/** -text
+*.pdf binary
+*.jpg binary
+*.png binary
+*.xlsx binary
+*.docx binary
