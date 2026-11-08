@@ -15,7 +15,7 @@ from app.modulos.etl.carga import ejecutar
 from app.modulos.etl.reglas import digito_verificador
 from app.modulos.excepciones import servicio
 from app.modulos.excepciones.servicio import (
-    CASO, DESCARTADO, PENDIENTE, RECHAZO, RESUELTO, AccionNoPermitida, DatosInvalidos, ExcepcionNoEncontrada,
+    CASO, DESCARTADO, DOCUMENTO, PENDIENTE, RECHAZO, RESUELTO, AccionNoPermitida, DatosInvalidos, ExcepcionNoEncontrada,
 )
 from app.modulos.recepcion import api as recepcion_api
 
@@ -50,7 +50,7 @@ def contar(conexion, tabla):
 def test_listar_muestra_casos_y_rechazos_pendientes(bandeja):
     todas = listar(bandeja)
     assert todas["total"] == 6
-    assert todas["pendientes"] == {CASO: 1, RECHAZO: 5}
+    assert todas["pendientes"] == {CASO: 1, RECHAZO: 5, DOCUMENTO: 0}
     assert {e["estado"] for e in todas["excepciones"]} == {PENDIENTE}
     caso = caso_en_revision(bandeja)
     assert caso["motivo"] == "Datos por revisar: FECHA OFICIO, N° RESOLUCIÓN"

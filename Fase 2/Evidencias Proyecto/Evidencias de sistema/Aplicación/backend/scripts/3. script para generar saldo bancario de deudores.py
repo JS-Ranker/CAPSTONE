@@ -25,6 +25,10 @@ MIN_CUENTAS = 1
 MAX_CUENTAS = 4
 SALDO_MINIMO = 0
 SALDO_MAXIMO = 15_000_000
+# Para probar la regla de 0,5 UTM: este porcentaje de deudores queda con un saldo TOTAL menor a
+# SALDO_BAJO_MAXIMO (0,5 UTM ronda los $36.000), así que no se les debe descontar nada.
+PROPORCION_SALDO_BAJO = 0.20
+SALDO_BAJO_MAXIMO = 34_000
 # None: nuevos saldos en cada ejecución. Un número fijo: mismo resultado reproducible.
 SEMILLA = None
 COLUMNAS = ("rut", "dv", "nombre_cliente", "tipo_cta", "monto")
@@ -107,8 +111,15 @@ def generar_saldos(clientes: list[dict]) -> list[dict]:
     aleatorio = random.Random(SEMILLA)
     filas = []
     for cliente in clientes:
-        for tipo in aleatorio.sample(TIPOS_CUENTA, aleatorio.randint(MIN_CUENTAS, MAX_CUENTAS)):
-            filas.append({**cliente, "tipo_cta": tipo, "monto": aleatorio.randint(SALDO_MINIMO, SALDO_MAXIMO)})
+        tipos = aleatorio.sample(TIPOS_CUENTA, aleatorio.randint(MIN_CUENTAS, MAX_CUENTAS))
+        saldo_bajo = aleatorio.random() < PROPORCION_SALDO_BAJO
+        for tipo in tipos:
+            if saldo_bajo:
+                # Cada cuenta toma a lo más su parte del tope, así la suma nunca lo pasa.
+                monto = aleatorio.randint(SALDO_MINIMO, SALDO_BAJO_MAXIMO // len(tipos))
+            else:
+                monto = aleatorio.randint(SALDO_MINIMO, SALDO_MAXIMO)
+            filas.append({**cliente, "tipo_cta": tipo, "monto": monto})
     return filas
 
 

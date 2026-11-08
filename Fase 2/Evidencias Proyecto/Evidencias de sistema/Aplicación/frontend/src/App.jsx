@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react'
 import './App.css'
 import { CasosTgr } from './componentes/CasosTgr'
 import { Icono } from './componentes/Icono'
@@ -87,20 +87,43 @@ function suscribirRuta(avisar) {
 }
 
 function Navegacion({ actual }) {
+  const contenedor = useRef(null)
+  const [marca, setMarca] = useState(null) // posición de la pastilla del módulo activo: { y, alto }
+  const [movil, setMovil] = useState(false) // la primera posición no se anima, solo los cambios
+
+  // Se mide antes de pintar: la pastilla aparece ya en su lugar y, al cambiar de módulo, se desliza.
+  useLayoutEffect(() => {
+    const activo = contenedor.current?.querySelector('[aria-current="page"]')
+    setMarca(activo ? { y: activo.offsetTop, alto: activo.offsetHeight } : null)
+  }, [actual])
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setMovil(true))
+    return () => cancelAnimationFrame(id)
+  }, [])
+
   return (
-    <ul className="menu">
-      {MODULOS.map(({ id, nombre, icono }) => (
-        <li key={id}>
-          <a
-            className={`menu__item${id === actual ? ' menu__item--activo' : ''}`}
-            href={`#/${id}`}
-            aria-current={id === actual ? 'page' : undefined}
-          >
-            <Icono nombre={icono} /> {nombre}
-          </a>
-        </li>
-      ))}
-    </ul>
+    <div className="menu-contenedor" ref={contenedor}>
+      {marca && (
+        <span
+          className={`menu__indicador${movil ? ' menu__indicador--movil' : ''}`}
+          style={{ transform: `translateY(${marca.y}px)`, height: marca.alto }}
+          aria-hidden="true"
+        />
+      )}
+      <ul className="menu">
+        {MODULOS.map(({ id, nombre, icono }) => (
+          <li key={id}>
+            <a
+              className={`menu__item${id === actual ? ' menu__item--activo' : ''}`}
+              href={`#/${id}`}
+              aria-current={id === actual ? 'page' : undefined}
+            >
+              <Icono nombre={icono} /> {nombre}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
   )
 }
 

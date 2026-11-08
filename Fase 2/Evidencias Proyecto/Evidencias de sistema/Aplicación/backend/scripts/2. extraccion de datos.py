@@ -26,9 +26,12 @@ COLUMNAS = [
     'MULTIPLES ROLES', 'REVISION MANUAL', 'CAMPOS FALTANTES OCR',
 ]
 
-# Estos campos no aparecen necesariamente en el oficio, por lo que quedan
-# pendientes para revisión o integración con los metadatos de correo.
-OBLIGATORIOS = COLUMNAS[1:12]
+# FECHA GESTION y FECHA INGRESO CASILLA no vienen en el PDF (son metadatos del
+# correo y del proceso), así que no se exigen: si se exigieran, todos los
+# documentos quedarían en revisión manual. De las fechas, solo FECHA OFICIO
+# es obligatoria porque sí está impresa en la resolución.
+NO_EXIGIDOS = {'FECHA GESTION', 'FECHA INGRESO CASILLA'}
+OBLIGATORIOS = [c for c in COLUMNAS[1:12] if c not in NO_EXIGIDOS]
 MESES = {
     'enero': 1, 'febrero': 2, 'marzo': 3, 'abril': 4,
     'mayo': 5, 'junio': 6, 'julio': 7, 'agosto': 8,

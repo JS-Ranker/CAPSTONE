@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { cruzarInforme, fijarUtm } from '../api'
+import { cruzarInforme, fijarUtm, obtenerUtmOficial } from '../api'
 import { formatearDia, formatearFecha, formatearMonto, formatearNumero, formatearRut } from '../formato'
 import { usePeticion } from '../usePeticion'
 import { FiltroInforme } from './FiltroInforme'
+import { Spinner } from './Spinner'
 
 const TONO_RESULTADO = {
   Descontado: 'exito', 'Descontado parcial': 'info', 'No descontado': 'advertencia', 'En revisión': 'error',
@@ -13,21 +14,25 @@ function Resultado({ resultado }) {
   return <span className={`etiqueta etiqueta--${TONO_RESULTADO[resultado] ?? 'info'}`}>{resultado}</span>
 }
 
-// UTM de cada mes: la ingresa el analista; el cruce usa la del mes en que se recibió el informe.
+// UTM de cada mes: se obtiene sola de la fuente oficial al cruzar (o con el botón) y el analista puede corregirla; el
+// cruce usa la del mes en que se recibió el informe.
 function PanelUtm({ onCambio }) {
   const [version, setVersion] = useState(0)
   const { datos, error } = usePeticion('/api/cruce/utm', version)
   const [periodo, setPeriodo] = useState(mesActual)
   const [valor, setValor] = useState('')
   const [estado, setEstado] = useState({ tipo: '', mensaje: '' })
+  const [ocupado, setOcupado] = useState(false)
 
   async function guardar(evento) {
     evento.preventDefault()
+    if (ocupado) return
     const numero = Number(valor.replace(/\./g, '').replace(',', '.'))
     if (!periodo || !(numero > 0)) {
       setEstado({ tipo: 'error', mensaje: 'Ingrese el mes y un valor de UTM mayor que cero.' })
       return
     }
+    setOcupado(true)
     try {
       await fijarUtm(periodo, numero)
       setEstado({ tipo: 'exito', mensaje: `UTM de ${periodo} guardada. Los informes ya cruzados conservan la UTM anterior hasta volver a cruzarlos.` })
@@ -36,6 +41,28 @@ function PanelUtm({ onCambio }) {
       onCambio()
     } catch (falla) {
       setEstado({ tipo: 'error', mensaje: falla.message })
+    } finally {
+      setOcupado(false)
+    }
+  }
+
+  async function buscarOficial() {
+    if (ocupado) return
+    if (!periodo) {
+      setEstado({ tipo: 'error', mensaje: 'Elija el mes.' })
+      return
+    }
+    setOcupado(true)
+    setEstado({ tipo: 'revisando', mensaje: `Consultando la UTM oficial de ${periodo}…` })
+    try {
+      const oficial = await obtenerUtmOficial(periodo)
+      setEstado({ tipo: 'exito', mensaje: `UTM oficial de ${periodo}: ${formatearMonto(oficial.valor)} (fuente: ${oficial.fuente}).` })
+      setVersion((n) => n + 1)
+      onCambio()
+    } catch (falla) {
+      setEstado({ tipo: 'error', mensaje: falla.message })
+    } finally {
+      setOcupado(false)
     }
   }
 
@@ -59,12 +86,15 @@ function PanelUtm({ onCambio }) {
             <label htmlFor="utm-valor">Valor ($)</label>
             <div className="filtros__busqueda">
               <input id="utm-valor" inputMode="decimal" value={valor} onChange={(e) => setValor(e.target.value)} placeholder="Ej.: 69.751" />
-              <button type="submit" className="boton">Guardar</button>
+              <button type="submit" className="boton" aria-disabled={ocupado || undefined}>Guardar</button>
+              <button type="button" className="boton" onClick={buscarOficial} aria-disabled={ocupado || undefined}>
+                {ocupado ? <><Spinner /> Buscando…</> : 'Obtener UTM oficial'}
+              </button>
             </div>
           </div>
         </form>
       </div>
-      <p className={`aviso aviso--${estado.tipo}`} role="status" aria-live="polite">{estado.mensaje}</p>
+      <p className={`aviso aviso--${estado.tipo}`} role="status" aria-live="polite">{ocupado && <Spinner />}{estado.mensaje}</p>
       {error && <p className="aviso aviso--error">{error.message}</p>}
       {datos?.length > 0 && (
         <p className="nota">
@@ -126,7 +156,7 @@ function CruceInforme({ informe, version, onCruzado }) {
           )}
         </div>
         <button type="button" className="boton boton--primario" onClick={cruzar} aria-disabled={estado.cruzando || undefined}>
-          {estado.cruzando ? 'Cruzando…' : datos ? 'Volver a cruzar' : 'Cruzar informe'}
+          {estado.cruzando ? <><Spinner /> Cruzando…</> : datos ? 'Volver a cruzar' : 'Cruzar informe'}
         </button>
       </div>
       <p className={`aviso aviso--${estado.tipo}`} role="status" aria-live="polite">{estado.mensaje}</p>

@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import { subirDocumento } from '../api'
 import { formatearNumero } from '../formato'
 import { Icono } from './Icono'
+import { Spinner } from './Spinner'
 
 const EXTENSIONES = ['.xlsx', '.xls', '.csv', '.txt', '.docx', '.pdf', '.jpg', '.jpeg', '.png']
 const TAMANO_MAXIMO_MB = 20 // el backend es quien decide (TAMANO_MAXIMO_MB); esto solo evita subir algo que rechazará
@@ -82,7 +83,7 @@ export function CargaDocumento({ onCargado }) {
           onClick={() => { if (!subiendo) entrada.current?.click() }}
           aria-disabled={subiendo || undefined}
         >
-          <Icono nombre="archivo" tamano={18} /> {subiendo ? 'Cargando…' : 'Seleccionar archivo'}
+          {subiendo ? <Spinner /> : <Icono nombre="archivo" tamano={18} />} {subiendo ? 'Cargando…' : 'Seleccionar archivo'}
         </button>
         <input
           ref={entrada}
@@ -95,7 +96,7 @@ export function CargaDocumento({ onCargado }) {
         />
       </div>
       <p className={`aviso aviso--${estado.tipo}`} role="status" aria-live="polite">
-        {estado.mensaje}
+        {subiendo && <Spinner />}{estado.mensaje}
       </p>
     </section>
   )

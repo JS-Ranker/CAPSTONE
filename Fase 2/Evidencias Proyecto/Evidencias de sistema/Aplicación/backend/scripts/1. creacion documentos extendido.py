@@ -236,10 +236,24 @@ def generar_fecha():
         1
     )
 
-    fin = datetime(
-        ANIO,
-        12,
-        31
+    # Una resolución no puede ser de una fecha futura: el tope es hoy.
+    hoy = datetime.now().replace(
+        hour=0,
+        minute=0,
+        second=0,
+        microsecond=0
+    )
+
+    fin = max(
+        inicio,
+        min(
+            datetime(
+                ANIO,
+                12,
+                31
+            ),
+            hoy
+        )
     )
 
     dias = (

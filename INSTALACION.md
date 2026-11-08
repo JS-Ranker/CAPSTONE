@@ -104,16 +104,19 @@ sqlcmd -S $SERVIDOR -E -C -f 65001 -i 09_ia.sql
 
 # Cruce con Banco Genérico: core bancario simulado, UTM y resultados del cruce
 sqlcmd -S $SERVIDOR -E -C -f 65001 -i 10_cruce.sql
+
+# Revisión de informes con error de extracción (lo leído se corrige en la Bandeja de Excepciones)
+sqlcmd -S $SERVIDOR -E -C -f 65001 -i 11_extraccion_revision.sql
 ```
 
-Comprobar que quedó bien. La primera consulta debe mostrar **4** (los roles iniciales) y la segunda, estas **13** tablas: `banco.cuentas`, `core.casos_tgr`, `cruce.descuentos`, `cruce.ejecuciones`, `cruce.resultados`, `cruce.utm`, `etl.ejecuciones`, `etl.resultados`, `etl.revisiones`, `ia.analisis`, `ia.insights`, `ia.reglas` y `stg.casos_tgr`.
+Comprobar que quedó bien. La primera consulta debe mostrar **4** (los roles iniciales) y la segunda, estas **16** tablas: `banco.cuentas`, `core.casos_tgr`, `cruce.descuentos`, `cruce.ejecuciones`, `cruce.resultados`, `cruce.utm`, `etl.ejecuciones`, `etl.extraccion_filas`, `etl.extracciones`, `etl.resultados`, `etl.revisiones`, `etl.revisiones_documento`, `ia.analisis`, `ia.insights`, `ia.reglas` y `stg.casos_tgr`.
 
 ```powershell
 sqlcmd -S $SERVIDOR -E -C -Q "SELECT COUNT(*) FROM TTDH_Automation.dbo.Roles"
 sqlcmd -S $SERVIDOR -E -C -d TTDH_Automation -Q "SELECT s.name + '.' + t.name FROM sys.tables t JOIN sys.schemas s ON s.schema_id = t.schema_id WHERE s.name IN ('stg','core','etl','ia','banco','cruce') ORDER BY 1"
 ```
 
-> **Cuidado:** `02_tablas.sql` borra y recrea las tablas principales. Si lo vuelves a ejecutar, después hay que correr de nuevo todos los scripts que vienen después. Los demás scripts (`03` en adelante, los de Tomás, `06` a `10`) no borran datos y se pueden ejecutar las veces que quieras.
+> **Cuidado:** `02_tablas.sql` borra y recrea las tablas principales. Si lo vuelves a ejecutar, después hay que correr de nuevo todos los scripts que vienen después. Los demás scripts (`03` en adelante, los de Tomás, `06` a `11`) no borran datos y se pueden ejecutar las veces que quieras.
 >
 > Los archivos `.ktr` de esta carpeta son el ETL original de Tomás en Pentaho. **No hace falta Pentaho**: la aplicación ejecuta las mismas reglas en Python (`backend/app/modulos/etl/`).
 

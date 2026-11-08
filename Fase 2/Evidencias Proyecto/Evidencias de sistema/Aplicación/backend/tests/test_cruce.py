@@ -8,7 +8,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import text
 
 from app.main import app
-from app.modulos.cruce import core_bancario, servicio
+from app.modulos.cruce import core_bancario, servicio, utm_oficial
 from app.modulos.cruce.reglas import DESCONTADO, NO_DESCONTADO, PARCIAL, REVISION
 from app.modulos.recepcion import api as recepcion_api
 from app.modulos.recepcion import procesar_pendientes
@@ -118,6 +118,54 @@ def test_fijar_utm_crea_o_corrige_el_mes(conexion_etl):
     assert servicio.valor_utm(conexion_etl, "2026-10") == Decimal("69751.50")
     accion, detalle = ultima_bitacora(conexion_etl)
     assert accion == "UTM actualizada" and detalle["anterior"] == "69000.00"
+
+
+def test_obtener_la_utm_oficial_la_guarda_y_la_registra(conexion_etl, monkeypatch):
+    monkeypatch.setattr(utm_oficial, "consultar", lambda periodo: Decimal("72151"))
+    assert servicio.obtener_utm_oficial(conexion_etl, "2026-10") == Decimal("72151")
+    assert servicio.valor_utm(conexion_etl, "2026-10") == Decimal("72151.00")
+    accion, detalle = ultima_bitacora(conexion_etl)
+    assert accion == "UTM oficial obtenida" and detalle["fuente"] == utm_oficial.FUENTE
+
+
+def test_si_la_fuente_falla_no_se_toca_la_utm_ingresada(conexion_etl):
+    servicio.fijar_utm(conexion_etl, "2026-10", Decimal("70000"))
+    with pytest.raises(utm_oficial.UtmNoDisponible):
+        servicio.obtener_utm_oficial(conexion_etl, "2026-10")
+    assert servicio.valor_utm(conexion_etl, "2026-10") == Decimal("70000.00")
+
+
+def test_el_cruce_automatico_busca_la_utm_oficial_si_falta(conexion_etl, informe, monkeypatch):
+    monkeypatch.setattr(utm_oficial, "consultar", lambda periodo: Decimal("72151"))
+    resumen = servicio.cruzar_sin_fallar(conexion_etl, informe)
+    assert resumen is not None and resumen.valor_utm == Decimal("72151.00")
+
+
+def test_la_consulta_de_la_utm_elige_el_mes_pedido(monkeypatch):
+    import io
+    import json as _json
+    serie = {"serie": [{"fecha": "2026-11-01T03:00:00.000Z", "valor": 72440},
+                       {"fecha": "2026-10-01T03:00:00.000Z", "valor": 72151},
+                       {"fecha": "2026-09-01T04:00:00.000Z", "valor": 71721}]}
+    monkeypatch.undo()   # deja la `consultar` real (la fixture autouse la había reemplazado)
+    monkeypatch.setattr(utm_oficial, "urlopen", lambda *a, **k: io.StringIO(_json.dumps(serie)))
+    assert utm_oficial.consultar("2026-10") == Decimal("72151")
+    assert utm_oficial.consultar("2026-09") == Decimal("71721")
+    with pytest.raises(utm_oficial.UtmNoDisponible, match="aún no publica"):
+        utm_oficial.consultar("2026-12")
+
+
+def test_api_utm_oficial(conexion_etl, monkeypatch):
+    app.dependency_overrides[recepcion_api.obtener_conexion] = lambda: conexion_etl
+    try:
+        cliente = TestClient(app)
+        assert cliente.post("/api/cruce/utm/2026-10/oficial").status_code == 502   # fuente caída
+        monkeypatch.setattr(utm_oficial, "consultar", lambda periodo: Decimal("72151"))
+        respuesta = cliente.post("/api/cruce/utm/2026-10/oficial")
+        assert respuesta.status_code == 200 and respuesta.json()["valor"] == 72151
+        assert cliente.get("/api/cruce/utm").json()[0]["periodo"] == "2026-10"
+    finally:
+        app.dependency_overrides.clear()
 
 
 def test_carga_del_core_bancario(conexion_etl, tmp_path):

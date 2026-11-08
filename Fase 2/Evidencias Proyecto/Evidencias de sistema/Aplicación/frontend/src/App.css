@@ -102,7 +102,7 @@ h1, h2, h3 { margin: 0; color: var(--texto); }
 }
 a.menu__item { color: var(--lateral-texto); text-decoration: none; }
 a.menu__item:hover { background: rgb(255 255 255 / 0.05); color: #fff; }
-.menu__item--activo, a.menu__item--activo:hover { background: var(--lateral-activo); color: #fff; font-weight: 600; }
+.menu__item--activo, a.menu__item--activo:hover { background: transparent; color: #fff; font-weight: 600; }
 .menu__item--activo .icono { color: #9cc0f0; }
 .menu__item--proximo { color: var(--lateral-tenue); }
 .menu__grupo {
@@ -461,8 +461,25 @@ a { color: var(--primario); text-underline-offset: 3px; }
   .formulario > .boton { margin-top: 0; justify-self: start; }
 }
 
+/* Spinner: anillo que hereda color y tamaño del texto. */
+.spinner {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  margin-right: 0.45em;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  vertical-align: -0.15em;
+  animation: girar 0.75s linear infinite;
+}
+@keyframes girar { to { transform: rotate(360deg); } }
+.cargando { display: flex; align-items: center; }
+.etiqueta .spinner { width: 0.85em; height: 0.85em; border-width: 1.5px; margin-right: 0.35em; }
+
 @media (prefers-reduced-motion: reduce) {
   .zona-carga, .boton { transition: none; }
+  .spinner { animation-duration: 2s; }  /* más lento, pero sigue girando: un spinner quieto no indica nada */
 }
 
 /* --- Bandeja de Excepciones --- */
@@ -519,3 +536,131 @@ a { color: var(--primario); text-underline-offset: 3px; }
 .insight__titulo { margin: 0; font-size: 0.95rem; font-weight: 600; overflow-wrap: anywhere; }
 .insight__detalle, .insight__sugerencia { margin: 0; font-size: 0.9rem; overflow-wrap: anywhere; }
 #titulo-insights:focus { outline: none; }
+
+/* Revisión de informes con error de extracción (grilla editable de los deudores leídos). */
+.tabla-contenedor--grilla { margin: 0; border: 1px solid var(--borde); border-radius: var(--radio); }
+.tabla--grilla th, .tabla--grilla td { padding: 6px 8px; white-space: nowrap; }
+.tabla--grilla th:first-child, .tabla--grilla td:first-child { padding-left: 10px; }
+.tabla--grilla th:last-child, .tabla--grilla td:last-child { padding-right: 10px; text-align: right; }
+.celda { width: 100%; min-width: 7rem; padding: 4px 6px; font: inherit; color: var(--texto);
+  background: var(--superficie); border: 1px solid var(--borde-campo); border-radius: var(--radio); }
+.celda--dudosa { border: 2px solid var(--advertencia); background: var(--advertencia-fondo); }
+.vista-previa { margin-top: 8px; }
+.vista-previa summary { cursor: pointer; color: var(--primario); font-size: 0.875rem; }
+.vista-previa img { display: block; max-width: 100%; max-height: 70vh; margin-top: 8px; object-fit: contain;
+  border: 1px solid var(--borde); border-radius: var(--radio); }
+
+/* --- Movimiento ---
+   Interfaz de trabajo: el movimiento acompaña un cambio de estado y dura lo justo (150–300 ms), con
+   desaceleración exponencial. Hay un momento propio, el indicador que se desliza entre módulos del menú. Con
+   prefers-reduced-motion no hay desplazamientos ni escalas: quedan los fundidos, que sí informan. */
+:root {
+  --salida: cubic-bezier(0.16, 1, 0.3, 1);
+  --rapido: 150ms;
+  --normal: 240ms;
+}
+
+/* Menú: una sola pastilla se desliza hasta el módulo activo (continuidad entre pantallas). */
+.menu-contenedor { position: relative; }
+.menu__indicador {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  top: 0;
+  border-radius: var(--radio);
+  background: var(--lateral-activo);
+  pointer-events: none;
+}
+.menu__indicador--movil { transition: transform 360ms var(--salida), height 360ms var(--salida); }
+.menu__item { position: relative; transition: background-color var(--rapido), color var(--rapido); }
+.menu__item .icono { transition: color var(--rapido), transform var(--normal) var(--salida); }
+a.menu__item:hover .icono { transform: translateX(2px); }
+a.menu__item--activo:hover .icono { transform: none; }
+
+/* Estado del entorno: mientras se verifica, el punto late; al conectarse, se enciende. */
+.indicador { transition: background-color var(--normal), box-shadow var(--normal); }
+.entorno .pendiente .indicador { animation: latido 1.2s ease-in-out infinite; }
+.entorno .ok .indicador { box-shadow: 0 0 0 3px rgb(76 195 138 / 0.18); }
+@keyframes latido { 50% { opacity: 0.35; } }
+
+/* Llegada de una pantalla: los bloques suben y aparecen en cascada corta (tope: 4 bloques). */
+@keyframes llegar {
+  from { opacity: 0; transform: translateY(8px); }
+}
+.contenido > * { animation: llegar 320ms var(--salida) backwards; }
+.contenido > :nth-child(2) { animation-delay: 50ms; }
+.contenido > :nth-child(3) { animation-delay: 100ms; }
+.contenido > :nth-child(n + 4) { animation-delay: 150ms; }
+.encabezado h1 { animation: llegar 260ms var(--salida) backwards; }
+
+/* Filas nuevas de una tabla o lista: aparecen al montarse (las que ya estaban no se repiten al filtrar). */
+@keyframes llegar-fila {
+  from { opacity: 0; transform: translateY(4px); }
+}
+.tabla tbody tr, .lista-apilada__item { animation: llegar-fila 260ms var(--salida) backwards; }
+.tabla tbody tr:nth-child(2), .lista-apilada__item:nth-child(2) { animation-delay: 20ms; }
+.tabla tbody tr:nth-child(3), .lista-apilada__item:nth-child(3) { animation-delay: 40ms; }
+.tabla tbody tr:nth-child(4), .lista-apilada__item:nth-child(4) { animation-delay: 60ms; }
+.tabla tbody tr:nth-child(5), .lista-apilada__item:nth-child(5) { animation-delay: 80ms; }
+.tabla tbody tr:nth-child(6), .lista-apilada__item:nth-child(6) { animation-delay: 100ms; }
+.tabla tbody tr:nth-child(7), .lista-apilada__item:nth-child(7) { animation-delay: 120ms; }
+.tabla tbody tr:nth-child(8), .lista-apilada__item:nth-child(8) { animation-delay: 140ms; }
+.tabla tbody tr:nth-child(n + 9), .lista-apilada__item:nth-child(n + 9) { animation-delay: 160ms; }
+.tabla tbody tr { transition: background-color var(--rapido); }
+
+/* Botones: respuesta inmediata al pulsar. */
+.boton { transition: background-color var(--rapido), border-color var(--rapido), color var(--rapido),
+  transform 100ms var(--salida); }
+.boton:active:not(:disabled):not([aria-disabled='true']) { transform: scale(0.97); }
+
+/* Avisos de éxito o error: entran desde arriba para que se noten sin pedir atención. */
+@keyframes aviso { from { opacity: 0; transform: translateY(-4px); } }
+.aviso--exito, .aviso--error { animation: aviso 280ms var(--salida); }
+
+/* Zona de carga: al arrastrar un archivo encima, crece apenas y el icono se levanta. */
+.zona-carga { transition: background-color var(--rapido), border-color var(--rapido),
+  transform var(--normal) var(--salida); }
+.zona-carga--activa { transform: scale(1.01); }
+.zona-carga__icono { transition: transform var(--normal) var(--salida); }
+.zona-carga--activa .zona-carga__icono { transform: translateY(-3px); }
+
+/* Diálogos: entran con un leve ascenso y el fondo se oscurece; al cerrar salen más rápido. */
+.dialogo {
+  opacity: 1;
+  transform: none;
+  transition: opacity 160ms ease-in, transform 160ms ease-in, overlay 160ms allow-discrete, display 160ms allow-discrete;
+}
+.dialogo[open] { transition-duration: var(--normal); transition-timing-function: var(--salida); }
+.dialogo:not([open]) { opacity: 0; transform: translateY(8px) scale(0.985); }
+@starting-style {
+  .dialogo[open] { opacity: 0; transform: translateY(10px) scale(0.985); }
+}
+.dialogo::backdrop {
+  background: rgb(16 27 44 / 0);
+  transition: background-color 160ms, overlay 160ms allow-discrete, display 160ms allow-discrete;
+}
+.dialogo[open]::backdrop { background: rgb(16 27 44 / 0.4); transition-duration: var(--normal); }
+@starting-style {
+  .dialogo[open]::backdrop { background: rgb(16 27 44 / 0); }
+}
+
+/* Detalles que el navegador dibuja por su cuenta, con la paleta de la aplicación. */
+::selection { background: rgb(47 111 219 / 0.22); }
+html, .tabla-contenedor { scrollbar-color: var(--borde-control) transparent; }
+
+@keyframes aparecer { from { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  /* Sin desplazamientos ni escalas: solo fundidos breves. */
+  .contenido > *, .encabezado h1, .tabla tbody tr, .lista-apilada__item {
+    animation: aparecer 150ms ease-out backwards;
+    animation-delay: 0ms;
+  }
+  .aviso--exito, .aviso--error { animation: aparecer 150ms ease-out; }
+  .menu__indicador--movil { transition: none; }
+  a.menu__item:hover .icono { transform: none; }
+  .boton:active:not(:disabled):not([aria-disabled='true']) { transform: none; }
+  .zona-carga--activa, .zona-carga--activa .zona-carga__icono { transform: none; }
+  .dialogo:not([open]) { transform: none; }
+  @starting-style { .dialogo[open] { transform: none; } }
+  .entorno .pendiente .indicador { animation: none; }
+}

@@ -4,6 +4,7 @@ import { formatearFecha, formatearNumero } from '../formato'
 import { usePeticion } from '../usePeticion'
 import { FiltroInforme } from './FiltroInforme'
 import { Paginacion } from './Paginacion'
+import { Spinner } from './Spinner'
 
 const POR_PAGINA = 20
 const TONO_NIVEL = { Alto: 'error', Medio: 'advertencia', Bajo: 'info' }
@@ -92,7 +93,7 @@ function DialogoRevision({ insight, accion, onCerrar, onHecho }) {
           {falla && <p className="aviso aviso--error" role="alert">{falla}</p>}
           <div className="acciones">
             <button type="submit" className="boton boton--primario" aria-disabled={enviando || undefined}>
-              {enviando ? 'Guardando…' : aplicar ? 'Aplicar' : 'Marcar como revisado'}
+              {enviando ? <><Spinner /> Guardando…</> : aplicar ? 'Aplicar' : 'Marcar como revisado'}
             </button>
             <button type="button" className="boton" onClick={() => dialogo.current.close()}>Cancelar</button>
           </div>

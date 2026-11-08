@@ -388,5 +388,5 @@ def test_api_filtrar_por_informe(cliente):
     assert informes[muestra]["por_revisar"] == 6
 
     excepciones = cliente.get("/api/excepciones", params={"informe": muestra, "estado": "Pendiente"}).json()
-    assert excepciones["total"] == 6 and excepciones["pendientes"] == {"caso": 1, "rechazo": 5}
+    assert excepciones["total"] == 6 and excepciones["pendientes"] == {"caso": 1, "rechazo": 5, "documento": 0}
     assert {e["id_informe"] for e in excepciones["excepciones"]} == {muestra}

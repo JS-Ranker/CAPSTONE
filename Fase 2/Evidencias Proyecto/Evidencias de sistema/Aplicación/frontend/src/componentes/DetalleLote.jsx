@@ -4,6 +4,7 @@ import { formatearFecha, formatearMonto, formatearNumero, formatearPorcentaje } 
 import { usePeticion } from '../usePeticion'
 import { EstadoArchivo } from './EstadoArchivo'
 import { Icono } from './Icono'
+import { Spinner } from './Spinner'
 
 // Resultado del ETL de un CSV. Los que llegan por correo o SFTP se procesan desde aquí con "Procesar".
 function ResultadoEtl({ archivo, onProcesado, onVerCasos }) {
@@ -54,7 +55,7 @@ function ResultadoEtl({ archivo, onProcesado, onVerCasos }) {
         <div className="acciones acciones--centradas">
           <p className="nota">Este CSV aún no pasa por el ETL.</p>
           <button type="button" className="boton" onClick={procesar} aria-disabled={procesando || undefined}>
-            {procesando ? 'Procesando…' : 'Procesar'}
+            {procesando ? <><Spinner /> Procesando…</> : 'Procesar'}
           </button>
         </div>
       )}
@@ -116,7 +117,7 @@ function HistorialLote({ historial, error, onReintentar }) {
       </p>
     )
   }
-  if (!historial) return <p className="nota">Cargando…</p>
+  if (!historial) return <p className="nota cargando"><Spinner /> Cargando…</p>
   if (historial.length === 0) return <p className="nota">Sin registros en la bitácora.</p>
   return (
     <ol className="historial">

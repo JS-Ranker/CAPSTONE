@@ -8,12 +8,21 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from app.config import BACKEND_DIR
 from app.db import engine
+from app.modulos.cruce import utm_oficial
 
 SIMULADOS = BACKEND_DIR.parent / "data" / "simulados"
 # En orden de borrado (las hijas primero). Son de los scripts de Tomás y de 06_etl.sql, 07_revisiones.sql, 09_ia.sql
 # y 10_cruce.sql.
-TABLAS_ETL = ("cruce.descuentos", "cruce.resultados", "cruce.ejecuciones", "cruce.utm", "banco.cuentas", "ia.reglas", "ia.insights", "ia.analisis", "etl.revisiones", "etl.resultados", "etl.ejecuciones",
+TABLAS_ETL = ("cruce.descuentos", "cruce.resultados", "cruce.ejecuciones", "cruce.utm", "banco.cuentas", "ia.reglas", "ia.insights", "ia.analisis", "etl.revisiones_documento", "etl.extraccion_filas", "etl.extracciones", "etl.revisiones", "etl.resultados", "etl.ejecuciones",
               "core.casos_tgr", "stg.casos_tgr")
+
+
+@pytest.fixture(autouse=True)
+def sin_red_para_la_utm(monkeypatch):
+    """Ninguna prueba consulta la UTM en internet; las que la necesitan reemplazan `consultar` por un valor fijo."""
+    def sin_fuente(periodo):
+        raise utm_oficial.UtmNoDisponible("Fuente de la UTM desactivada en las pruebas.")
+    monkeypatch.setattr(utm_oficial, "consultar", sin_fuente)
 
 
 @pytest.fixture

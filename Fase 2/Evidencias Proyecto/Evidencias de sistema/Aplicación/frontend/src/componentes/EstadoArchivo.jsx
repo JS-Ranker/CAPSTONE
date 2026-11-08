@@ -1,3 +1,5 @@
+import { Spinner } from './Spinner'
+
 // Estado de Archivos_TGR como etiqueta de color (el texto siempre está visible: no depende solo del color).
 const TONOS = {
   Recibido: 'neutro',
@@ -9,5 +11,9 @@ const TONOS = {
 }
 
 export function EstadoArchivo({ estado }) {
-  return <span className={`etiqueta etiqueta--${TONOS[estado] ?? 'neutro'}`}>{estado}</span>
+  return (
+    <span className={`etiqueta etiqueta--${TONOS[estado] ?? 'neutro'}`}>
+      {estado === 'Pendiente de Extracción' && <Spinner />}{estado}
+    </span>
+  )
 }

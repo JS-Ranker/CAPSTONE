@@ -4,6 +4,7 @@ import { usePeticion } from '../usePeticion'
 import { EstadoRevision } from './EstadoRevision'
 import { FiltroInforme } from './FiltroInforme'
 import { Paginacion } from './Paginacion'
+import { Spinner } from './Spinner'
 
 const POR_PAGINA = 20
 
@@ -95,7 +96,7 @@ function TablaCasos({ informe }) {
           {error.message} <button type="button" className="enlace" onClick={recargar}>Reintentar</button>
         </p>
       )}
-      {!error && !datos && <p className="nota">Cargando…</p>}
+      {!error && !datos && <p className="nota cargando"><Spinner /> Cargando…</p>}
       {!error && datos && casos.length === 0 && (
         <p className="vacio">
           {filtrando ? 'Ningún caso coincide con la búsqueda.' : <>Aún no hay casos. Suba un CSV TGR en <a href="#/ingesta">Ingesta</a>.</>}

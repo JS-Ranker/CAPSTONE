@@ -3,6 +3,7 @@ import { formatearFecha, formatearNumero, formatearPorcentaje } from '../formato
 import { usePeticion } from '../usePeticion'
 import { EstadoArchivo } from './EstadoArchivo'
 import { Paginacion } from './Paginacion'
+import { Spinner } from './Spinner'
 
 const POR_PAGINA = 10
 const INTERVALO_ACTUALIZACION = 4000 // ms, solo mientras haya informes leyéndose
@@ -56,7 +57,7 @@ export function TablaLotes({ version, onVerDetalle, onActualizar }) {
           {/* Sin live region: mientras se leen informes se actualiza cada 4 s y anunciaría la hora una y otra vez */}
           {(cargando || actualizadoEn) && (
             <span className="nota">
-              {cargando ? 'Actualizando…' : `Actualizado ${hora.format(actualizadoEn)}`}
+              {cargando ? <><Spinner /> Actualizando…</> : `Actualizado ${hora.format(actualizadoEn)}`}
             </span>
           )}
           {/* Actualiza toda la pantalla: esta tabla y el panel de recepción automática.
@@ -152,7 +153,7 @@ export function TablaLotes({ version, onVerDetalle, onActualizar }) {
         onCambiar={setPagina}
         etiqueta="Páginas de informes"
       />
-      {hayPendientes && <p className="nota">Leyendo informes: la tabla se actualiza sola.</p>}
+      {hayPendientes && <p className="nota cargando"><Spinner /> Leyendo informes: la tabla se actualiza sola.</p>}
     </section>
   )
 }

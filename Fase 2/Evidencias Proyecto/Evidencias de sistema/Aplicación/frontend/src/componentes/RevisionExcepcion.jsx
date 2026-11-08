@@ -1,10 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { revisarExcepcion } from '../api'
 import { TIPOS, rutOriginal } from '../excepciones'
-import { formatearDia, formatearFecha, formatearRut } from '../formato'
+import { formatearDia, formatearRut } from '../formato'
 import { usePeticion } from '../usePeticion'
 import { EstadoRevision } from './EstadoRevision'
+import { Historial } from './HistorialRevision'
 import { Icono } from './Icono'
+import { ContenidoDocumento } from './RevisionDocumento'
+import { Spinner } from './Spinner'
 
 const FECHA = { ayuda: 'dd-mm-aaaa', placeholder: 'dd-mm-aaaa' }
 const SI_NO = { ayuda: 'SI o NO' }
@@ -52,36 +55,6 @@ function aTexto(campo, valor) {
   if (/^\d{4}-\d{2}-\d{2}/.test(String(valor))) return formatearDia(valor)
   if (campo === 'monto_solicitado' && typeof valor === 'number') return String(Math.trunc(valor))
   return String(valor)
-}
-
-const mostrar = (valor) => {
-  if (valor === null || valor === undefined || valor === '') return 'vacío'
-  return /^\d{4}-\d{2}-\d{2}$/.test(String(valor)) ? formatearDia(valor) : String(valor)
-}
-
-function Historial({ historial }) {
-  if (historial.length === 0) return <p className="nota">Sin revisiones todavía.</p>
-  return (
-    <ol className="historial">
-      {historial.map((revision) => (
-        <li key={revision.id_revision} className="historial__item">
-          <div className="historial__cabecera">
-            <EstadoRevision estado={revision.estado} />
-            <span className="nota">{formatearFecha(revision.fecha)} · {revision.usuario}</span>
-          </div>
-          <p className="historial__texto">{revision.observacion}</p>
-          {revision.cambios && (
-            <ul className="historial__cambios">
-              {Object.entries(revision.cambios).map(([campo, { antes, despues }]) => (
-                <li key={campo}>{ETIQUETAS[campo] ?? campo}: {mostrar(antes)} → {mostrar(despues)}</li>
-              ))}
-            </ul>
-          )}
-          {revision.id_caso_nuevo && <p className="nota">Se creó el caso #{revision.id_caso_nuevo}.</p>}
-        </li>
-      ))}
-    </ol>
-  )
 }
 
 function FormularioRevision({ tipo, id, detalle, onHecho }) {
@@ -183,7 +156,7 @@ function FormularioRevision({ tipo, id, detalle, onHecho }) {
       <div className="acciones">
         {descartado ? (
           <button type="submit" className="boton boton--primario" aria-disabled={Boolean(enviando) || undefined}>
-            {enviando ? 'Guardando…' : 'Reabrir'}
+            {enviando ? <><Spinner /> Guardando…</> : 'Reabrir'}
           </button>
         ) : acciones.map((accion) => (
           <button
@@ -193,7 +166,7 @@ function FormularioRevision({ tipo, id, detalle, onHecho }) {
             onClick={accion === principal ? undefined : () => enviar(accion)}
             aria-disabled={Boolean(enviando) || undefined}
           >
-            {enviando === accion ? 'Guardando…' : ACCIONES[accion].texto}
+            {enviando === accion ? <><Spinner /> Guardando…</> : ACCIONES[accion].texto}
           </button>
         ))}
       </div>
@@ -252,7 +225,7 @@ function ContenidoRevision({ tipo, id, onRevisado, onCerrar }) {
           {error.message} <button type="button" className="enlace" onClick={recargar}>Reintentar</button>
         </p>
       )}
-      {!error && !detalle && <p className="nota">Cargando…</p>}
+      {!error && !detalle && <p className="nota cargando"><Spinner /> Cargando…</p>}
       {detalle && (
         <>
           <div className="regla">
@@ -277,7 +250,7 @@ function ContenidoRevision({ tipo, id, onRevisado, onCerrar }) {
           )}
           <div className="grupo">
             <h3 className="grupo__titulo">Historial</h3>
-            <Historial historial={detalle.historial} />
+            <Historial historial={detalle.historial} etiquetas={ETIQUETAS} />
           </div>
         </>
       )}
@@ -298,7 +271,15 @@ export function RevisionExcepcion({ excepcion, onCerrar, onRevisado }) {
 
   return (
     <dialog ref={dialogo} className="dialogo dialogo--ancho" aria-labelledby="titulo-revision" onClose={onCerrar}>
-      {excepcion && (
+      {excepcion?.tipo === 'documento' && (
+        <ContenidoDocumento
+          key={excepcion.id}
+          id={excepcion.id}
+          onRevisado={onRevisado}
+          onCerrar={() => dialogo.current.close()}
+        />
+      )}
+      {excepcion && excepcion.tipo !== 'documento' && (
         <ContenidoRevision
           key={`${excepcion.tipo}-${excepcion.id}`}
           tipo={excepcion.tipo}

@@ -18,6 +18,7 @@ from ..extraccion import ResultadoExtraccion, escribir_plantilla, extraer
 from ..etl.carga import PROCESADO, ErrorFormatoCsv, ejecutar_filas
 from ..etl.desde_informe import filas_para_etl
 from ..ia.servicio import analizar_sin_fallar
+from ..extraccion.persistencia import guardar_extraccion
 from ..extraccion.plantilla import ERROR_EXTRACCION, NORMALIZADO
 from .registro import PENDIENTE_EXTRACCION
 
@@ -99,26 +100,36 @@ def extraer_pendiente(conexion: Connection, documento: DocumentoPendiente, almac
             "errores": resultado.errores, "observaciones": resultado.observaciones,
         })
         if resultado.estado != NORMALIZADO:
+            guardar_extraccion(conexion, documento.id_archivo, resultado)  # para corregirlo en la Bandeja
             return resultado.estado  # el documento completo va a revisión manual (CU12 5b)
-
-        # Los deudores pasan al ETL en la misma transacción: el documento queda "Procesado" con sus casos,
-        # o no queda nada a medias. Los dudosos se cargan marcados para revisión manual.
-        filas = filas_para_etl(resultado, nombre_archivo=documento.nombre_archivo,
-                               fecha_recepcion=documento.fecha_recepcion, remitente=documento.remitente,
-                               asunto=documento.asunto_correo)
-        try:
-            with conexion.begin_nested():
-                resumen = ejecutar_filas(conexion, filas, documento.nombre_archivo, documento.id_archivo)
-        except ErrorFormatoCsv as error:
-            _cambiar_estado(conexion, documento.id_archivo, ERROR_EXTRACCION)
-            bitacora.registrar(conexion, "Ejecución ETL rechazada", {
-                "id_archivo": documento.id_archivo, "archivo": documento.nombre_archivo, "motivo": str(error)})
-            return ERROR_EXTRACCION
-        _cambiar_estado(conexion, documento.id_archivo, PROCESADO, resumen.filas_leidas)
+        estado, _ = cargar_en_etl(conexion, documento, resultado)
+        if estado != PROCESADO:
+            return estado
     # Fuera de la transacción: si la IA o el cruce fallan, el informe igual queda procesado (RF08, CU03 paso 6).
     analizar_sin_fallar(conexion, documento.id_archivo)
     cruzar_sin_fallar(conexion, documento.id_archivo)
     return PROCESADO
+
+
+def cargar_en_etl(conexion: Connection, documento: DocumentoPendiente,
+                  resultado: ResultadoExtraccion) -> tuple[str, str | None]:
+    """Pasa los deudores extraídos por el ETL, dentro de la transacción en curso: el documento queda "Procesado"
+    con sus casos, o no queda nada a medias. Los dudosos se cargan marcados para revisión manual.
+    Devuelve el estado final y, si el ETL rechazó el informe, el motivo."""
+    filas = filas_para_etl(resultado, nombre_archivo=documento.nombre_archivo,
+                           fecha_recepcion=documento.fecha_recepcion, remitente=documento.remitente,
+                           asunto=documento.asunto_correo)
+    try:
+        with conexion.begin_nested():
+            resumen = ejecutar_filas(conexion, filas, documento.nombre_archivo, documento.id_archivo)
+    except ErrorFormatoCsv as error:
+        _cambiar_estado(conexion, documento.id_archivo, ERROR_EXTRACCION)
+        guardar_extraccion(conexion, documento.id_archivo, resultado)
+        bitacora.registrar(conexion, "Ejecución ETL rechazada", {
+            "id_archivo": documento.id_archivo, "archivo": documento.nombre_archivo, "motivo": str(error)})
+        return ERROR_EXTRACCION, str(error)
+    _cambiar_estado(conexion, documento.id_archivo, PROCESADO, resumen.filas_leidas)
+    return PROCESADO, None
 
 
 def _cambiar_estado(conexion: Connection, id_archivo: int, estado: str, total: int | None = None) -> None:

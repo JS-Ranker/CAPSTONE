@@ -57,6 +57,16 @@ export const revisarExcepcion = (tipo, id, { accion, observacion, datos }) => pe
   { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ accion, observacion, datos }) },
 )
 
+// Informe con error de extracción: corregir y enviar al ETL, volver a leerlo, o descartarlo / dejarlo pendiente.
+const enviarJson = (url, cuerpo) => pedir(url, {
+  method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cuerpo),
+})
+export const procesarDocumento = (id, cuerpo) => enviarJson(`/api/excepciones/documento/${id}/procesar`, cuerpo)
+export const reextraerDocumento = (id, observacion) => enviarJson(
+  `/api/excepciones/documento/${id}/reextraer`, { accion: 'reextraer', observacion })
+export const revisarDocumento = (id, { accion, observacion }) => enviarJson(
+  `/api/excepciones/documento/${id}/revisiones`, { accion, observacion })
+
 // Módulo de IA (CU08): accion 'aplicar' (la validación sugerida) o 'revisar' (descartar).
 export const revisarInsight = (id, { accion, observacion }) => pedir(`/api/ia/insights/${id}/revision`, {
   method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ accion, observacion }),
@@ -66,4 +76,5 @@ export const revisarInsight = (id, { accion, observacion }) => pedir(`/api/ia/in
 export const fijarUtm = (periodo, valor) => pedir(`/api/cruce/utm/${periodo}`, {
   method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ valor }),
 })
-export const cruzarInforme = (idArchivo) => pedir(`/api/cruce/informes/${idArchivo}/cruzar`, { method: 'POST' })
+export const obtenerUtmOficial = (periodo) => pedir(`/api/cruce/utm/${periodo}/oficial`, { method: 'POST' })
+export const cruzarInforme =(idArchivo) => pedir(`/api/cruce/informes/${idArchivo}/cruzar`, { method: 'POST' })

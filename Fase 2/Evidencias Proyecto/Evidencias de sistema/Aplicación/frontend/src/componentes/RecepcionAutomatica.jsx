@@ -4,6 +4,7 @@ import { formatearFecha, formatearNumero } from '../formato'
 import { usePeticion } from '../usePeticion'
 import { Icono } from './Icono'
 import { RemitentesAutorizados } from './RemitentesAutorizados'
+import { Spinner } from './Spinner'
 
 function resumir(resumen) {
   const partes = [`${resumen.registrados} registrados`, `${resumen.rechazados} rechazados`]
@@ -43,7 +44,7 @@ export function RecepcionAutomatica({ version, onRevisado }) {
           No se pudo cargar. <button type="button" className="enlace" onClick={recargar}>Reintentar</button>
         </p>
       )}
-      {!datos && !error && <p className="nota">Cargando…</p>}
+      {!datos && !error && <p className="nota cargando"><Spinner /> Cargando…</p>}
       {datos && (
         <>
           <div className="grupo">
@@ -94,7 +95,7 @@ export function RecepcionAutomatica({ version, onRevisado }) {
           aria-disabled={ocupado || undefined}
           onClick={() => revisar('correo', 'Correo', revisarCorreo)}
         >
-          {ocupado && accion.canal === 'correo' ? 'Leyendo…' : 'Leer correo'}
+          {ocupado && accion.canal === 'correo' ? <><Spinner /> Leyendo…</> : 'Leer correo'}
         </button>
         <button
           type="button"
@@ -103,7 +104,7 @@ export function RecepcionAutomatica({ version, onRevisado }) {
           aria-disabled={ocupado || undefined}
           onClick={() => revisar('sftp', 'SFTP', revisarSftp)}
         >
-          {ocupado && accion.canal === 'sftp' ? 'Leyendo…' : 'Leer SFTP'}
+          {ocupado && accion.canal === 'sftp' ? <><Spinner /> Leyendo…</> : 'Leer SFTP'}
         </button>
       </div>
       <p className={`aviso aviso--${accion.tipo}`} role="status" aria-live="polite">{accion.mensaje}</p>

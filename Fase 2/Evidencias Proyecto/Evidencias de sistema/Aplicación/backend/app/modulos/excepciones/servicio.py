@@ -21,9 +21,10 @@ from ... import bitacora
 from ...db import transaccion
 from ..etl.carga import RECHAZADO, casos_existentes, insertar_caso
 from ..etl.reglas import COLUMNAS_STG, Caso, Rechazo, corregir_campos, normalizar
+from ..extraccion.plantilla import ERROR_EXTRACCION
 from ..recepcion.documentos import DocumentoOriginal, buscar_documento, nombre_en_ruta
 
-CASO, RECHAZO = "caso", "rechazo"
+CASO, RECHAZO, DOCUMENTO = "caso", "rechazo", "documento"
 PENDIENTE, RESUELTO, DESCARTADO = "Pendiente", "Resuelto Manual", "Descartado"
 REGULARIZAR, CARGAR, DESCARTAR, DEJAR_PENDIENTE = "regularizar", "cargar", "descartar", "pendiente"
 ACCIONES = {CASO: (REGULARIZAR, DEJAR_PENDIENTE), RECHAZO: (CARGAR, DESCARTAR, DEJAR_PENDIENTE)}
@@ -38,6 +39,11 @@ WITH ultimas AS (
     SELECT id_caso, id_resultado, estado, observacion,
            ROW_NUMBER() OVER (PARTITION BY id_caso, id_resultado ORDER BY id_revision DESC) AS orden
     FROM etl.revisiones
+),
+ultimas_doc AS (
+    SELECT id_archivo, estado, observacion,
+           ROW_NUMBER() OVER (PARTITION BY id_archivo ORDER BY id_revision DESC) AS orden
+    FROM etl.revisiones_documento
 ),
 excepciones AS (
     SELECT N'{CASO}' AS tipo, c.id_caso AS id, c.rut_limpio AS rut, c.dv_limpio AS dv, c.nom_cli, c.rol,
@@ -64,6 +70,14 @@ excepciones AS (
     JOIN etl.ejecuciones e ON e.id_ejecucion = r.id_ejecucion
     LEFT JOIN ultimas u ON u.id_resultado = r.id_resultado AND u.orden = 1
     WHERE r.resultado = N'{RECHAZADO}'
+    UNION ALL
+    SELECT N'{DOCUMENTO}', a.id_archivo, NULL, NULL, NULL, NULL,
+           COALESCE(JSON_VALUE(x.errores, '$[0]'), N'El informe no se pudo extraer'),
+           a.id_archivo, a.nombre_archivo, a.fecha_recepcion, COALESCE(u.estado, N'{PENDIENTE}'), u.observacion
+    FROM dbo.Archivos_TGR a
+    LEFT JOIN etl.extracciones x ON x.id_archivo = a.id_archivo
+    LEFT JOIN ultimas_doc u ON u.id_archivo = a.id_archivo AND u.orden = 1
+    WHERE a.estado_archivo = N'{ERROR_EXTRACCION}' OR u.estado = N'{RESUELTO}'
 )
 """
 
@@ -105,7 +119,7 @@ def listar(conexion: Connection, *, tipo: str | None, estado: str | None, buscar
         parametros["estado"] = estado
     texto = (buscar or "").strip()
     if texto:
-        condiciones.append("(rut = :rut OR nom_cli LIKE :patron OR rol LIKE :patron)")
+        condiciones.append("(rut = :rut OR nom_cli LIKE :patron OR rol LIKE :patron OR archivo_origen LIKE :patron)")
         literal = texto.upper().replace("[", "[[]").replace("%", "[%]").replace("_", "[_]")
         parametros |= {"rut": texto.replace(".", "").split("-")[0], "patron": f"%{literal}%"}
     donde = f"WHERE {' AND '.join(condiciones)}" if condiciones else ""
@@ -122,7 +136,8 @@ def listar(conexion: Connection, *, tipo: str | None, estado: str | None, buscar
             f"{_EXCEPCIONES} SELECT * FROM excepciones {donde} "
             "ORDER BY fecha DESC, tipo, id OFFSET :desplazamiento ROWS FETCH NEXT :limite ROWS ONLY"
         ), parametros).mappings().all()
-    return {"total": total, "pendientes": {CASO: pendientes.get(CASO, 0), RECHAZO: pendientes.get(RECHAZO, 0)},
+    return {"total": total,
+            "pendientes": {tipo_: pendientes.get(tipo_, 0) for tipo_ in (CASO, RECHAZO, DOCUMENTO)},
             "limite": limite, "desplazamiento": desplazamiento, "excepciones": [dict(f) for f in filas]}
 
 

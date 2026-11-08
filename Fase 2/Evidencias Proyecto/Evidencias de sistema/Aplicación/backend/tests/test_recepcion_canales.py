@@ -75,7 +75,7 @@ def test_informe_de_punta_a_punta_da_el_resultado_del_manifiesto(conexion, almac
     # Los dudosos y los rechazados quedan en la Bandeja de Excepciones, con el informe como documento original.
     en_revision = resultados.count("Revisión manual")
     excepciones = bandeja.listar(conexion, tipo=None, estado="Pendiente", buscar=None, limite=100, desplazamiento=0)
-    assert excepciones["pendientes"] == {"caso": en_revision, "rechazo": resultados.count("Rechazado")}
+    assert excepciones["pendientes"] == {"caso": en_revision, "rechazo": resultados.count("Rechazado"), "documento": 0}
     if en_revision:
         caso = next(e for e in excepciones["excepciones"] if e["tipo"] == "caso")
         assert bandeja.documento_original(conexion, "caso", caso["id"]).id_archivo == documento.id_archivo

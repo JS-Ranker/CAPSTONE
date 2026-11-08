@@ -3,22 +3,23 @@
 Pendiente: la plataforma aún no tiene inicio de sesión (CU01, RF09). Cuando exista, revisar debe exigir el
 rol Analista o Administrador, y la revisión debe quedar a nombre del usuario (hoy, el usuario técnico).
 """
+from collections.abc import Callable
 from pathlib import Path
 from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import Connection
 
-from ..recepcion.api import obtener_almacen, obtener_conexion
+from ..recepcion.api import obtener_almacen, obtener_conexion, obtener_extractor
 from ..recepcion.documentos import TIPOS_MIME, VISIBLES_EN_NAVEGADOR, ruta_segura
-from . import servicio
-from .servicio import CASO
+from . import documentos, servicio
+from .servicio import CASO, DOCUMENTO
 
 router = APIRouter(prefix="/api/excepciones", tags=["Bandeja de Excepciones"])
 
-Tipo = Literal["caso", "rechazo"]
+Tipo = Literal["caso", "rechazo", "documento"]
 
 
 class Revision(BaseModel):
@@ -27,6 +28,18 @@ class Revision(BaseModel):
     observacion: str = Field(..., max_length=servicio.LARGO_OBSERVACION)
     # caso: campos corregibles de core.casos_tgr; rechazo: columnas del CSV (nombres de stg.casos_tgr)
     datos: dict[str, str | None] = Field(default_factory=dict, max_length=25)
+
+
+class FilaCorregida(BaseModel):
+    orden: int | None = Field(None, ge=1, description="Posición en lo extraído; vacío si la agregó el analista")
+    valores: dict[str, str | None] = Field(default_factory=dict, max_length=15)
+
+
+class Correccion(BaseModel):
+    observacion: str = Field(..., max_length=servicio.LARGO_OBSERVACION)
+    filas: list[FilaCorregida] = Field(default_factory=list, max_length=documentos.MAXIMO_FILAS)
+    cantidad_declarada: int | None = Field(None, ge=0, le=1_000_000)
+    suma_declarada: int | None = Field(None, ge=0, le=10**15)
 
 
 def _error(exc: Exception) -> HTTPException:
@@ -58,6 +71,8 @@ def listar(
 def detalle(tipo: Tipo, id_excepcion: int, conexion: Connection = Depends(obtener_conexion)):
     """Datos del registro, regla incumplida e historial de revisiones ("Revisar detalle")."""
     try:
+        if tipo == DOCUMENTO:
+            return documentos.detalle(conexion, id_excepcion)
         return servicio.detalle(conexion, tipo, id_excepcion)
     except servicio.ExcepcionNoEncontrada as exc:
         raise _error(exc) from exc
@@ -72,7 +87,8 @@ def ver_documento(
 ):
     """PDF o imagen original del oficio, para revisarlo junto al formulario ("Ver documento")."""
     try:
-        original = servicio.documento_original(conexion, tipo, id_excepcion)
+        original = (documentos.documento_original(conexion, id_excepcion) if tipo == DOCUMENTO
+                    else servicio.documento_original(conexion, tipo, id_excepcion))
     except servicio.ExcepcionNoEncontrada as exc:
         raise _error(exc) from exc
     ruta = ruta_segura(almacen, original)
@@ -85,8 +101,54 @@ def ver_documento(
                         content_disposition_type="inline" if extension in VISIBLES_EN_NAVEGADOR else "attachment")
 
 
+@router.post("/documento/{id_archivo}/procesar", status_code=status.HTTP_201_CREATED)
+def procesar_documento(
+    id_archivo: int,
+    correccion: Correccion,
+    conexion: Connection = Depends(obtener_conexion),
+    almacen: Path = Depends(obtener_almacen),
+):
+    """Envía al ETL el informe corregido (solo si sus filas cuadran con los totales declarados)."""
+    try:
+        casos = documentos.procesar_corregido(
+            conexion, id_archivo, correccion.observacion,
+            [documentos.FilaCorregida(f.orden, f.valores) for f in correccion.filas],
+            correccion.cantidad_declarada, correccion.suma_declarada, almacen)
+    except (servicio.ExcepcionNoEncontrada, servicio.AccionNoPermitida, servicio.DatosInvalidos) as exc:
+        raise _error(exc) from exc
+    return {"estado": servicio.RESUELTO, "filas_enviadas": casos}
+
+
+@router.post("/documento/{id_archivo}/reextraer", status_code=status.HTTP_202_ACCEPTED)
+def reextraer_documento(
+    id_archivo: int,
+    revision: Revision,
+    tareas: BackgroundTasks,
+    conexion: Connection = Depends(obtener_conexion),
+    extractor: Callable[[int], None] = Depends(obtener_extractor),
+):
+    """Vuelve a leer el documento (OCR) en segundo plano; el resultado reemplaza lo extraído antes."""
+    try:
+        documentos.volver_a_extraer(conexion, id_archivo, revision.observacion)
+    except (servicio.ExcepcionNoEncontrada, servicio.AccionNoPermitida, servicio.DatosInvalidos) as exc:
+        raise _error(exc) from exc
+    tareas.add_task(extractor, id_archivo)
+    return {"estado": servicio.PENDIENTE}
+
+
+@router.post("/documento/{id_archivo}/revisiones", status_code=status.HTTP_201_CREATED)
+def revisar_documento(id_archivo: int, revision: Revision, conexion: Connection = Depends(obtener_conexion)):
+    """Descarta un informe con error de extracción o lo deja pendiente (también para reabrirlo)."""
+    try:
+        estado = documentos.revisar_documento(conexion, id_archivo, revision.accion, revision.observacion)
+    except (servicio.ExcepcionNoEncontrada, servicio.AccionNoPermitida, servicio.DatosInvalidos) as exc:
+        raise _error(exc) from exc
+    return {"estado": estado}
+
+
 @router.post("/{tipo}/{id_excepcion}/revisiones", status_code=status.HTTP_201_CREATED)
-def revisar(tipo: Tipo, id_excepcion: int, revision: Revision, conexion: Connection = Depends(obtener_conexion)):
+def revisar(tipo: Literal["caso", "rechazo"], id_excepcion: int, revision: Revision,
+            conexion: Connection = Depends(obtener_conexion)):
     """Registra una revisión: regularizar o dejar pendiente un caso; cargar, descartar o dejar pendiente un rechazo."""
     funcion = servicio.revisar_caso if tipo == CASO else servicio.revisar_rechazo
     try:

@@ -16,6 +16,7 @@ from sqlalchemy import Connection, text
 
 from ... import bitacora
 from ...db import transaccion
+from . import utm_oficial
 from .reglas import DESCONTADO, NO_DESCONTADO, PARCIAL, REVISION, Cuenta, Deuda, Resultado, calcular
 
 log = logging.getLogger(__name__)
@@ -91,6 +92,16 @@ def fijar_utm(conexion: Connection, periodo: str, valor: Decimal, id_usuario: in
                                   "WHERE periodo = :p"), {"p": periodo, "v": valor, "u": id_usuario})
         bitacora.registrar(conexion, "UTM actualizada",
                            {"periodo": periodo, "anterior": anterior, "valor": valor}, id_usuario)
+
+
+def obtener_utm_oficial(conexion: Connection, periodo: str, id_usuario: int | None = None) -> Decimal:
+    """Busca la UTM oficial del mes y la guarda (reemplaza la que hubiera). Lanza UtmNoDisponible si no se puede."""
+    valor = utm_oficial.consultar(periodo)
+    fijar_utm(conexion, periodo, valor, id_usuario)
+    with transaccion(conexion):
+        bitacora.registrar(conexion, "UTM oficial obtenida",
+                           {"periodo": periodo, "valor": valor, "fuente": utm_oficial.FUENTE}, id_usuario)
+    return valor
 
 
 def _cuentas(conexion: Connection, ruts: list[str]) -> list[Cuenta]:
@@ -172,9 +183,25 @@ def cruzar_informe(conexion: Connection, id_archivo: int) -> ResumenCruce:
     return resumen
 
 
-def cruzar_sin_fallar(conexion: Connection, id_archivo: int) -> ResumenCruce | None:
-    """Cruce automático después del ETL: si no se puede, el informe queda procesado y se anota en la bitácora."""
+def _asegurar_utm(conexion: Connection, id_archivo: int) -> None:
+    """Obtiene la UTM oficial del mes de recepción del informe si aún no está cargada. Nunca lanza error."""
     try:
+        with transaccion(conexion):
+            recepcion = conexion.execute(text("SELECT fecha_recepcion FROM dbo.Archivos_TGR WHERE id_archivo = :id"),
+                                         {"id": id_archivo}).scalar()
+        if recepcion is not None and valor_utm(conexion, periodo_de(recepcion)) is None:
+            obtener_utm_oficial(conexion, periodo_de(recepcion))
+    except Exception as error:  # noqa: BLE001 - sin UTM el cruce queda pendiente, que es el comportamiento previo
+        log.info("No se obtuvo la UTM oficial para el informe %s: %s", id_archivo, error)
+
+
+def cruzar_sin_fallar(conexion: Connection, id_archivo: int) -> ResumenCruce | None:
+    """Cruce automático después del ETL: si no se puede, el informe queda procesado y se anota en la bitácora.
+
+    Si falta la UTM del mes, primero intenta obtener la oficial; si no la consigue, el analista la ingresa a mano.
+    """
+    try:
+        _asegurar_utm(conexion, id_archivo)
         return cruzar_informe(conexion, id_archivo)
     except CruceNoPosible as motivo:
         accion, detalle = "Cruce pendiente", str(motivo)

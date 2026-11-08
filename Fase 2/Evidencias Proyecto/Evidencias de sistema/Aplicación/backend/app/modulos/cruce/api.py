@@ -11,6 +11,7 @@ from sqlalchemy import Connection
 
 from ..recepcion.api import obtener_conexion
 from . import servicio
+from .utm_oficial import FUENTE, UtmNoDisponible
 
 router = APIRouter(prefix="/api/cruce", tags=["Cruce con Banco Genérico"])
 PERIODO = Path(pattern=r"^20\d{2}-(0[1-9]|1[0-2])$", description="Mes, AAAA-MM")
@@ -31,6 +32,16 @@ def fijar_utm(valor: ValorUtm, periodo: str = PERIODO, conexion: Connection = De
     """Ingresa o corrige la UTM del mes. Los cruces ya hechos conservan la UTM con que se calcularon."""
     servicio.fijar_utm(conexion, periodo, valor.valor)
     return {"periodo": periodo, "valor": valor.valor}
+
+
+@router.post("/utm/{periodo}/oficial")
+def obtener_utm_oficial(periodo: str = PERIODO, conexion: Connection = Depends(obtener_conexion)):
+    """Busca la UTM oficial del mes en mindicador.cl (Banco Central / SII) y la guarda."""
+    try:
+        valor = servicio.obtener_utm_oficial(conexion, periodo)
+    except UtmNoDisponible as exc:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
+    return {"periodo": periodo, "valor": valor, "fuente": FUENTE}
 
 
 @router.get("/informes")

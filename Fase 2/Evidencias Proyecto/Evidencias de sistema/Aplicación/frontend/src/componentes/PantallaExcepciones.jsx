@@ -6,6 +6,7 @@ import { EstadoRevision } from './EstadoRevision'
 import { FiltroInforme } from './FiltroInforme'
 import { Paginacion } from './Paginacion'
 import { RevisionExcepcion } from './RevisionExcepcion'
+import { Spinner } from './Spinner'
 
 const POR_PAGINA = 20
 
@@ -24,7 +25,7 @@ export function PantallaExcepciones({ informe }) {
   if (informe) parametros.set('informe', informe)
   const { datos, error, recargar } = usePeticion(`/api/excepciones?${parametros}`, version)
   const excepciones = datos?.excepciones ?? []
-  const pendientes = datos ? datos.pendientes.caso + datos.pendientes.rechazo : 0
+  const pendientes = datos ? datos.pendientes.caso + datos.pendientes.rechazo + datos.pendientes.documento : 0
 
   function filtrar(cambios) {
     setFiltro((previo) => ({ ...previo, ...cambios }))
@@ -42,7 +43,8 @@ export function PantallaExcepciones({ informe }) {
               {datos && (pendientes === 0
                 ? 'No hay excepciones pendientes.'
                 : `${formatearNumero(pendientes)} pendientes: ${formatearNumero(datos.pendientes.caso)} para revisión, `
-                  + `${formatearNumero(datos.pendientes.rechazo)} rechazadas`)}
+                  + `${formatearNumero(datos.pendientes.rechazo)} rechazadas y `
+                  + `${formatearNumero(datos.pendientes.documento)} informes con error de extracción`)}
             </p>
           </div>
           <form
@@ -56,6 +58,7 @@ export function PantallaExcepciones({ informe }) {
                 <option value="">Todos</option>
                 <option value="caso">{TIPOS.caso}</option>
                 <option value="rechazo">{TIPOS.rechazo}</option>
+                <option value="documento">{TIPOS.documento}</option>
               </select>
             </div>
             <div className="campo">
@@ -75,7 +78,7 @@ export function PantallaExcepciones({ informe }) {
                   type="search"
                   value={texto}
                   onChange={(evento) => setTexto(evento.target.value)}
-                  placeholder="RUT, nombre o rol"
+                  placeholder="RUT, nombre, rol o archivo"
                   maxLength={100}
                 />
                 <button type="submit" className="boton">Buscar</button>
@@ -89,7 +92,7 @@ export function PantallaExcepciones({ informe }) {
             {error.message} <button type="button" className="enlace" onClick={recargar}>Reintentar</button>
           </p>
         )}
-        {!error && !datos && <p className="nota">Cargando…</p>}
+        {!error && !datos && <p className="nota cargando"><Spinner /> Cargando…</p>}
         {!error && datos && excepciones.length === 0 && (
           <p className="vacio">
             {filtro.estado === 'Pendiente' && !filtro.buscar && !filtro.tipo
