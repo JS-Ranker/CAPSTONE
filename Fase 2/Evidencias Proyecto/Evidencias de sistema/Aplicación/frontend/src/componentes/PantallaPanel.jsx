@@ -1,6 +1,9 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import { descargarAvisosClientes, descargarRespuestaTgr } from '../api'
 import { formatearFecha, formatearMonto, formatearNumero } from '../formato'
 import { usePeticion } from '../usePeticion'
+import { NombreArchivo } from './NombreArchivo'
+import { Spinner } from './Spinner'
 
 const REFRESCO_MS = 30_000
 const TONO_ESTADO = {
@@ -16,6 +19,76 @@ const RESULTADOS = [
 ]
 
 const porcentaje = (parte, total) => (total > 0 ? Math.round((parte / total) * 100) : 0)
+
+// dd-mm-aa del día de recepción, como la fecha de un timbre.
+function fechaDeSello(texto) {
+  const fecha = new Date(texto)
+  if (Number.isNaN(fecha.getTime())) return ''
+  const dos = (n) => String(n).padStart(2, '0')
+  return `${dos(fecha.getDate())}-${dos(fecha.getMonth() + 1)}-${String(fecha.getFullYear()).slice(2)}`
+}
+
+// El informe que llegó último, con su sello y las descargas que le corresponden. Las descargas existen solo si ya se cruzó.
+function UltimoInforme({ informe }) {
+  const [estado, setEstado] = useState({ tipo: '', mensaje: '', ocupado: false })
+  if (!informe) {
+    return (
+      <section className="tarjeta" aria-labelledby="titulo-ultimo">
+        <h2 id="titulo-ultimo">Último informe recibido</h2>
+        <p className="vacio">Aún no se recibe ningún informe. Cárguelo en Ingesta.</p>
+      </section>
+    )
+  }
+  const cruzado = informe.con_descuento !== null && informe.con_descuento !== undefined
+
+  async function descargar(descarga, mensaje) {
+    if (estado.ocupado) return
+    setEstado({ tipo: 'revisando', mensaje: 'Preparando el archivo…', ocupado: true })
+    try {
+      await descarga(informe.id_archivo)
+      setEstado({ tipo: 'exito', mensaje, ocupado: false })
+    } catch (falla) {
+      setEstado({ tipo: 'error', mensaje: falla.message, ocupado: false })
+    }
+  }
+
+  return (
+    <section className="tarjeta ultimo-informe" aria-labelledby="titulo-ultimo">
+      <div>
+        <h2 id="titulo-ultimo">
+          <a href={`#/cruce?informe=${informe.id_archivo}`}>#{informe.id_archivo} · <NombreArchivo nombre={informe.nombre_archivo} /></a>
+        </h2>
+        <dl className="ultimo-informe__datos">
+          <div><dt className="oculto">Recibido</dt><dd>Recibido {formatearFecha(informe.fecha_recepcion)} por {informe.canal_origen}</dd></div>
+          <div><dt className="oculto">Deudores</dt><dd><span className="cifra">{formatearNumero(informe.total_registros)}</span> deudores</dd></div>
+          {cruzado && (
+            <>
+              <div><dt className="oculto">Con descuento</dt><dd><span className="cifra">{formatearNumero(informe.con_descuento)}</span> con descuento</dd></div>
+              <div><dt className="oculto">A descontar</dt><dd><span className="cifra">{formatearMonto(informe.monto_descontado)}</span> a descontar</dd></div>
+            </>
+          )}
+        </dl>
+      </div>
+      <span className={`etiqueta etiqueta--${TONO_ESTADO[informe.estado_archivo] ?? 'info'}`}>
+        {informe.estado_archivo}
+        <span className="etiqueta__fecha">· {fechaDeSello(informe.fecha_recepcion)}</span>
+      </span>
+      {cruzado && (
+        <div className="acciones">
+          <button type="button" className="boton boton--primario" aria-disabled={estado.ocupado || undefined}
+            onClick={() => descargar(descargarRespuestaTgr, 'Informe a la TGR descargado.')}>
+            {estado.ocupado ? <><Spinner /> Preparando…</> : 'Descargar informe a la TGR'}
+          </button>
+          <button type="button" className="boton" aria-disabled={estado.ocupado || undefined}
+            onClick={() => descargar(descargarAvisosClientes, 'Lista de avisos a clientes descargada. El sistema no envía correos.')}>
+            Descargar avisos a clientes
+          </button>
+        </div>
+      )}
+      <p className={`aviso aviso--${estado.tipo}`} role="status" aria-live="polite">{estado.mensaje}</p>
+    </section>
+  )
+}
 
 function Indicadores({ datos }) {
   const pendientes = Object.values(datos.excepciones_pendientes).reduce((a, b) => a + b, 0)
@@ -89,7 +162,7 @@ function EstadoDeLosInformes({ informes }) {
 function PorMes({ meses }) {
   const mayor = Math.max(1, ...meses.map((m) => Number(m.solicitado)))
   return (
-    <section className="tarjeta tarjeta--tabla" aria-labelledby="titulo-meses">
+    <section className="tarjeta" aria-labelledby="titulo-meses">
       <h2 id="titulo-meses">Montos por mes de recepción</h2>
       {meses.length === 0 && <p className="vacio">Aún no hay informes cruzados.</p>}
       {meses.length > 0 && (
@@ -134,7 +207,7 @@ function PorMes({ meses }) {
 
 function UltimosInformes({ informes }) {
   return (
-    <section className="tarjeta tarjeta--tabla" aria-labelledby="titulo-recientes">
+    <section className="tarjeta" aria-labelledby="titulo-recientes">
       <h2 id="titulo-recientes">Últimos informes recibidos</h2>
       {informes.length === 0 && <p className="vacio">Aún no se recibe ningún informe.</p>}
       {informes.length > 0 && (
@@ -143,9 +216,9 @@ function UltimosInformes({ informes }) {
             <thead>
               <tr>
                 <th scope="col">Informe</th>
+                <th scope="col">Estado</th>
                 <th scope="col">Recibido</th>
                 <th scope="col">Canal</th>
-                <th scope="col">Estado</th>
                 <th scope="col" className="numero">Deudores</th>
                 <th scope="col" className="numero">Con descuento</th>
                 <th scope="col" className="numero">A descontar</th>
@@ -154,10 +227,10 @@ function UltimosInformes({ informes }) {
             <tbody>
               {informes.map((i) => (
                 <tr key={i.id_archivo}>
-                  <td className="nombre"><a href={`#/cruce?informe=${i.id_archivo}`}>#{i.id_archivo} · {i.nombre_archivo}</a></td>
+                  <td className="nombre"><a href={`#/cruce?informe=${i.id_archivo}`}>#{i.id_archivo} · <NombreArchivo nombre={i.nombre_archivo} /></a></td>
+                  <td><span className={`etiqueta etiqueta--${TONO_ESTADO[i.estado_archivo] ?? 'info'}`}>{i.estado_archivo}</span></td>
                   <td className="sin-salto">{formatearFecha(i.fecha_recepcion)}</td>
                   <td>{i.canal_origen}</td>
-                  <td><span className={`etiqueta etiqueta--${TONO_ESTADO[i.estado_archivo] ?? 'info'}`}>{i.estado_archivo}</span></td>
                   <td className="numero">{formatearNumero(i.total_registros)}</td>
                   <td className="numero">{formatearNumero(i.con_descuento)}</td>
                   <td className="numero">{formatearMonto(i.monto_descontado)}</td>
@@ -182,6 +255,8 @@ export function PantallaPanel() {
 
   return (
     <>
+      {datos && <UltimoInforme informe={datos.ultimos_informes[0]} />}
+      {datos && <UltimosInformes informes={datos.ultimos_informes} />}
       <section className="tarjeta" aria-labelledby="titulo-panel">
         <div className="tarjeta__cabecera">
           <div>
@@ -205,7 +280,6 @@ export function PantallaPanel() {
             <EstadoDeLosInformes informes={datos.informes} />
           </div>
           <PorMes meses={datos.por_mes} />
-          <UltimosInformes informes={datos.ultimos_informes} />
         </>
       )}
     </>

@@ -168,7 +168,7 @@ function CruceInforme({ informe, version, onCruzado }) {
         <div className="acciones">
           {datos && (
             <>
-            <button type="button" className="boton" onClick={() => descargar(descargarRespuestaTgr, 'Informe a la TGR descargado: hojas Resumen, Detalle y No procesados.')}>
+            <button type="button" className="boton boton--primario" onClick={() => descargar(descargarRespuestaTgr, 'Informe a la TGR descargado: hojas Resumen, Detalle y No procesados.')}>
               Descargar informe a la TGR
             </button>
             <button type="button" className="boton" onClick={() => descargar(descargarAvisosClientes, 'Lista de avisos a clientes descargada. El sistema no envía correos.')}>
@@ -176,7 +176,7 @@ function CruceInforme({ informe, version, onCruzado }) {
             </button>
             </>
           )}
-          <button type="button" className="boton boton--primario" onClick={cruzar} aria-disabled={estado.cruzando || undefined}>
+          <button type="button" className={`boton${datos ? '' : ' boton--primario'}`} onClick={cruzar} aria-disabled={estado.cruzando || undefined}>
             {estado.cruzando ? <><Spinner /> Cruzando…</> : datos ? 'Volver a cruzar' : 'Cruzar informe'}
           </button>
         </div>
@@ -206,7 +206,7 @@ function CruceInforme({ informe, version, onCruzado }) {
             </div>
           </div>
           <div className="tabla-contenedor">
-            <table className="tabla" aria-labelledby="titulo-cruce">
+            <table className="tabla tabla--cruce" aria-labelledby="titulo-cruce">
               <thead>
                 <tr>
                   <th scope="col">RUT</th>

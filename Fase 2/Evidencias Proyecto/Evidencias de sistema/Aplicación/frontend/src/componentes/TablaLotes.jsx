@@ -4,6 +4,7 @@ import { usePeticion } from '../usePeticion'
 import { EstadoArchivo } from './EstadoArchivo'
 import { Paginacion } from './Paginacion'
 import { Spinner } from './Spinner'
+import { NombreArchivo } from './NombreArchivo'
 
 const POR_PAGINA = 10
 const INTERVALO_ACTUALIZACION = 4000 // ms, solo mientras haya informes leyéndose
@@ -98,7 +99,7 @@ export function TablaLotes({ version, onVerDetalle, onActualizar }) {
                   <td className="id">#{archivo.id_archivo}</td>
                   <td className="nombre">
                     <button type="button" className="enlace enlace--archivo" onClick={() => onVerDetalle(archivo)}>
-                      <span className="oculto">Ver detalle de </span>{archivo.nombre_archivo}
+                      <span className="oculto">Ver detalle de </span><NombreArchivo nombre={archivo.nombre_archivo} />
                     </button>
                   </td>
                   <td>
@@ -127,7 +128,7 @@ export function TablaLotes({ version, onVerDetalle, onActualizar }) {
           {archivos.map((archivo) => (
             <li key={archivo.id_archivo} className="lista-apilada__item">
               <div className="lista-apilada__cabecera">
-                <span className="nombre lista-apilada__nombre">{archivo.nombre_archivo}</span>
+                <span className="nombre lista-apilada__nombre"><NombreArchivo nombre={archivo.nombre_archivo} /></span>
                 <EstadoArchivo estado={archivo.estado_archivo} />
               </div>
               <p className="nota">

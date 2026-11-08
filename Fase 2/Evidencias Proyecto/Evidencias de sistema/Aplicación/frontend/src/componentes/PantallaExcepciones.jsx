@@ -133,7 +133,7 @@ export function PantallaExcepciones({ informe }) {
                       <td>
                         <button
                           type="button"
-                          className="boton boton--compacto boton--fantasma"
+                          className="boton boton--compacto"
                           onClick={() => setAbierta({ tipo: fila.tipo, id: fila.id })}
                         >
                           Revisar<span className="oculto"> {fila.motivo}, RUT {rutDe(fila)}</span>

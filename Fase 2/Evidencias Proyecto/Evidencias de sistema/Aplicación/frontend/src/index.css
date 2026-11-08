@@ -1,7 +1,8 @@
-/* Base: tipografía del sistema (Segoe UI en los equipos Windows del banco), sin fuentes externas. */
+/* Base: Public Sans (tipografía de oficina) y JetBrains Mono para fechas, RUT y montos. Ambas se sirven desde el proyecto. */
 :root {
   color-scheme: light;
-  font-family: 'Segoe UI', system-ui, -apple-system, Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-family: 'Public Sans', 'Segoe UI', system-ui, -apple-system, Roboto, Arial, sans-serif;
+  --mono: 'JetBrains Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
   font-size: 100%;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
