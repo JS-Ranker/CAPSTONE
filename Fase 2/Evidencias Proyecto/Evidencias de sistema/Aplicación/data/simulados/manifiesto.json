@@ -416,7 +416,7 @@
     {
       "archivo": "estructurados/21_resolucion_vacia.csv",
       "formato": "CSV",
-      "descripcion": "Archivo vacío: va a revisión manual del documento.",
+      "descripcion": "Archivo vacío: la recepción lo rechaza; si llegara a la extracción, daría Error de Extracción.",
       "estado_extraccion_esperado": "Error de Extracción",
       "requiere_revision_esperada": null,
       "lee_con_ocr": false,

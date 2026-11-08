@@ -348,7 +348,7 @@ def generar(salida: Path, semilla: int = 2026) -> dict[str, object]:
     g.anotar(xlsx_corrupto, "Excel", "Excel dañado: va a revisión manual del documento (RN04).", "Error de Extracción", None)
     vacio = est / "21_resolucion_vacia.csv"
     vacio.write_bytes(b"")
-    g.anotar(vacio, "CSV", "Archivo vacío: va a revisión manual del documento.", "Error de Extracción", None)
+    g.anotar(vacio, "CSV", "Archivo vacío: la recepción lo rechaza; si llegara a la extracción, daría Error de Extracción.", "Error de Extracción", None)
     otro = est / "22_informe_otro_formato.csv"
     g.escribir_csv(otro, [["producto", "cantidad", "precio"], ["Tornillos", 100, 35], ["Tuercas", 100, 20]])
     g.anotar(otro, "CSV", "No es una resolución de la TGR: va a revisión manual del documento.",

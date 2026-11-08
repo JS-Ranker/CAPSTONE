@@ -48,7 +48,7 @@ En Word y TXT va el mismo texto de la resolución; en Excel y CSV, filas `campo;
 | `18_resolucion_sin_monto.docx` | El texto no trae el monto | Igual que el 17 |
 | `19_resolucion_rut_invalido.csv` | El dígito verificador no corresponde | El ETL lo rechaza (RN01) |
 | `20_resolucion_corrupta.xlsx` | Excel dañado | Error de Extracción: revisión manual del documento (RN04) |
-| `21_resolucion_vacia.csv` | Archivo vacío | Error de Extracción |
+| `21_resolucion_vacia.csv` | Archivo vacío | La recepción lo rechaza; si llegara a la extracción, daría Error de Extracción |
 | `22_informe_otro_formato.csv` | No es una resolución de la TGR | Error de Extracción |
 
 ## `banco_generico/`
