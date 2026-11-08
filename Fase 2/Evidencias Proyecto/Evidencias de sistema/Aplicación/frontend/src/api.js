@@ -78,3 +78,23 @@ export const fijarUtm = (periodo, valor) => pedir(`/api/cruce/utm/${periodo}`, {
 })
 export const obtenerUtmOficial = (periodo) => pedir(`/api/cruce/utm/${periodo}/oficial`, { method: 'POST' })
 export const cruzarInforme =(idArchivo) => pedir(`/api/cruce/informes/${idArchivo}/cruzar`, { method: 'POST' })
+
+// Informe de respuesta a la TGR (RF07, RF11): descarga el Excel del cruce del informe.
+export async function descargarRespuestaTgr(idArchivo) {
+  let respuesta
+  try {
+    respuesta = await fetch(`/api/reportes/informes/${idArchivo}/respuesta-tgr.xlsx`)
+  } catch {
+    throw new ErrorApi('No se pudo conectar con la API. ¿Está ejecutándose el backend?', 0)
+  }
+  if (!respuesta.ok) {
+    const cuerpo = await respuesta.json().catch(() => null)
+    throw new ErrorApi(mensajeDeError(cuerpo, respuesta.status), respuesta.status, cuerpo?.detail)
+  }
+  const nombre = /filename\*=UTF-8''([^;]+)/.exec(respuesta.headers.get('content-disposition') ?? '')?.[1]
+  const enlace = document.createElement('a')
+  enlace.href = URL.createObjectURL(await respuesta.blob())
+  enlace.download = nombre ? decodeURIComponent(nombre) : `respuesta_tgr_${idArchivo}.xlsx`
+  enlace.click()
+  URL.revokeObjectURL(enlace.href)
+}

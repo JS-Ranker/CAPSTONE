@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { cruzarInforme, fijarUtm, obtenerUtmOficial } from '../api'
+import { cruzarInforme, descargarRespuestaTgr, fijarUtm, obtenerUtmOficial } from '../api'
 import { formatearDia, formatearFecha, formatearMonto, formatearNumero, formatearRut } from '../formato'
 import { usePeticion } from '../usePeticion'
 import { FiltroInforme } from './FiltroInforme'
@@ -142,6 +142,16 @@ function CruceInforme({ informe, version, onCruzado }) {
     }
   }
 
+  async function descargarInforme() {
+    if (estado.cruzando) return
+    try {
+      await descargarRespuestaTgr(informe)
+      setEstado({ tipo: 'exito', mensaje: 'Informe a la TGR descargado: hojas Resumen, Detalle y No procesados.', cruzando: false })
+    } catch (falla) {
+      setEstado({ tipo: 'error', mensaje: falla.message, cruzando: false })
+    }
+  }
+
   const sinCruce = error?.estado === 404
   const resultados = (datos?.resultados ?? []).filter((r) => !filtro || r.resultado === filtro)
   return (
@@ -155,9 +165,16 @@ function CruceInforme({ informe, version, onCruzado }) {
             </p>
           )}
         </div>
-        <button type="button" className="boton boton--primario" onClick={cruzar} aria-disabled={estado.cruzando || undefined}>
-          {estado.cruzando ? <><Spinner /> Cruzando…</> : datos ? 'Volver a cruzar' : 'Cruzar informe'}
-        </button>
+        <div className="acciones">
+          {datos && (
+            <button type="button" className="boton" onClick={descargarInforme}>
+              Descargar informe a la TGR
+            </button>
+          )}
+          <button type="button" className="boton boton--primario" onClick={cruzar} aria-disabled={estado.cruzando || undefined}>
+            {estado.cruzando ? <><Spinner /> Cruzando…</> : datos ? 'Volver a cruzar' : 'Cruzar informe'}
+          </button>
+        </div>
       </div>
       <p className={`aviso aviso--${estado.tipo}`} role="status" aria-live="polite">{estado.mensaje}</p>
       {sinCruce && <p className="vacio">El informe aún no se ha cruzado. Si falta la UTM del mes, ingrésela arriba y luego cruce el informe.</p>}

@@ -241,7 +241,7 @@ def cruce_del_informe(conexion: Connection, id_archivo: int) -> dict | None:
             return None
         casos = conexion.execute(
             text("SELECT r.id_resultado, r.id_caso, c.rut_limpio AS rut, c.dv_limpio AS dv, c.nom_cli AS nombre, "
-                 "c.rol, c.fecha_oficio, r.resultado, r.cliente, r.saldo_total, r.monto_solicitado, "
+                 "c.rol, c.id_demanda, c.n_resol, c.fecha_oficio, r.resultado, r.cliente, r.saldo_total, r.monto_solicitado, "
                  "r.monto_descontado, r.monto_pendiente, r.motivo "
                  "FROM cruce.resultados r JOIN core.casos_tgr c ON c.id_caso = r.id_caso "
                  "WHERE r.id_ejecucion = :e ORDER BY c.rut_limpio, c.fecha_oficio, r.id_caso"),
