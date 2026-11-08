@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { cruzarInforme, descargarRespuestaTgr, fijarUtm, obtenerUtmOficial } from '../api'
+import { cruzarInforme, descargarAvisosClientes, descargarRespuestaTgr, fijarUtm, obtenerUtmOficial } from '../api'
 import { formatearDia, formatearFecha, formatearMonto, formatearNumero, formatearRut } from '../formato'
 import { usePeticion } from '../usePeticion'
 import { FiltroInforme } from './FiltroInforme'
@@ -142,11 +142,11 @@ function CruceInforme({ informe, version, onCruzado }) {
     }
   }
 
-  async function descargarInforme() {
+  async function descargar(descarga, mensaje) {
     if (estado.cruzando) return
     try {
-      await descargarRespuestaTgr(informe)
-      setEstado({ tipo: 'exito', mensaje: 'Informe a la TGR descargado: hojas Resumen, Detalle y No procesados.', cruzando: false })
+      await descarga(informe)
+      setEstado({ tipo: 'exito', mensaje, cruzando: false })
     } catch (falla) {
       setEstado({ tipo: 'error', mensaje: falla.message, cruzando: false })
     }
@@ -167,9 +167,14 @@ function CruceInforme({ informe, version, onCruzado }) {
         </div>
         <div className="acciones">
           {datos && (
-            <button type="button" className="boton" onClick={descargarInforme}>
+            <>
+            <button type="button" className="boton" onClick={() => descargar(descargarRespuestaTgr, 'Informe a la TGR descargado: hojas Resumen, Detalle y No procesados.')}>
               Descargar informe a la TGR
             </button>
+            <button type="button" className="boton" onClick={() => descargar(descargarAvisosClientes, 'Lista de avisos a clientes descargada. El sistema no envía correos.')}>
+              Descargar avisos a clientes
+            </button>
+            </>
           )}
           <button type="button" className="boton boton--primario" onClick={cruzar} aria-disabled={estado.cruzando || undefined}>
             {estado.cruzando ? <><Spinner /> Cruzando…</> : datos ? 'Volver a cruzar' : 'Cruzar informe'}
