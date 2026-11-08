@@ -664,3 +664,17 @@ html, .tabla-contenedor { scrollbar-color: var(--borde-control) transparent; }
   @starting-style { .dialogo[open] { transform: none; } }
   .entorno .pendiente .indicador { animation: none; }
 }
+
+/* Panel de monitoreo (RF06) */
+.rejilla-panel { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+.barra-apilada { display: flex; height: 14px; border-radius: 999px; overflow: hidden; background: var(--borde); margin: 12px 0; }
+.barra-apilada > span { display: block; height: 100%; }
+.leyenda { display: flex; flex-wrap: wrap; gap: 6px 18px; list-style: none; margin: 0 0 8px; padding: 0; font-size: 0.9rem; }
+.leyenda--columna { flex-direction: column; gap: 10px; margin-top: 12px; }
+.leyenda--columna li { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.leyenda__marca { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; }
+.barra { height: 10px; border-radius: 999px; background: var(--borde); min-width: 120px; overflow: hidden; }
+.barra__solicitado { display: block; height: 100%; background: var(--neutro); border-radius: 999px; }
+.barra__descontado { display: block; height: 100%; background: var(--exito); border-radius: 999px; }
+
+.indicadores--anchos { grid-template-columns: repeat(auto-fit, minmax(175px, 1fr)); }

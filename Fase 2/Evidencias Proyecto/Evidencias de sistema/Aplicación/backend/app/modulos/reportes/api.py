@@ -2,11 +2,12 @@
 from collections.abc import Callable
 from urllib.parse import quote
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy import Connection
 
 from ..recepcion.api import obtener_conexion
 from . import avisos, informe_tgr
+from .panel import indicadores
 
 router = APIRouter(prefix="/api/reportes", tags=["Reportes"])
 TIPO_EXCEL = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
@@ -21,6 +22,12 @@ def _descarga(generar: Callable[[Connection, int], tuple[bytes, str]], conexion:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
     return Response(contenido, media_type=TIPO_EXCEL,
                     headers={"Content-Disposition": f"attachment; filename*=UTF-8''{quote(nombre)}"})
+
+
+@router.get("/panel")
+def panel(meses: int = Query(6, ge=1, le=24), conexion: Connection = Depends(obtener_conexion)):
+    """Indicadores del panel de monitoreo (RF06): informes, casos, excepciones y resultado del cruce."""
+    return indicadores(conexion, meses)
 
 
 @router.get("/informes/{id_archivo}/respuesta-tgr.xlsx")

@@ -6,6 +6,7 @@ import { PantallaCruce } from './componentes/PantallaCruce'
 import { PantallaExcepciones } from './componentes/PantallaExcepciones'
 import { PantallaIA } from './componentes/PantallaIA'
 import { PantallaIngesta } from './componentes/PantallaIngesta'
+import { PantallaPanel } from './componentes/PantallaPanel'
 
 const CHEQUEOS = [
   { id: 'api', nombre: 'API', url: '/api/health' },
@@ -15,6 +16,7 @@ const CHEQUEOS = [
 // Pantallas construidas, con su dirección (#/ingesta, #/casos). El resto va agrupado bajo "Próximamente".
 const MODULOS = [
   { id: 'ingesta', nombre: 'Ingesta', icono: 'ingesta', titulo: 'Ingesta de documentos TGR', Pantalla: PantallaIngesta },
+  { id: 'panel', nombre: 'Dashboard', icono: 'dashboard', titulo: 'Panel de monitoreo', Pantalla: PantallaPanel },
   { id: 'casos', nombre: 'Casos TGR', icono: 'casos', titulo: 'Casos TGR', Pantalla: CasosTgr },
   {
     id: 'excepciones', nombre: 'Excepciones', icono: 'excepciones', titulo: 'Bandeja de Excepciones',
@@ -24,7 +26,6 @@ const MODULOS = [
   { id: 'cruce', nombre: 'Cruce Banco', icono: 'servidor', titulo: 'Cruce con Banco Genérico', Pantalla: PantallaCruce },
 ]
 const PROXIMOS = [
-  { nombre: 'Dashboard', icono: 'dashboard' },
   { nombre: 'Reportes', icono: 'bitacora' },
   { nombre: 'Auditoría', icono: 'bitacora' },
   { nombre: 'Usuarios y roles', icono: 'usuarios' },
